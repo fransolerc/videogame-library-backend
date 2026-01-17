@@ -1,0 +1,25 @@
+openapi: 3.0.1
+info:
+  title: Video Game Library API
+  version: 1.0.0
+  description: API para gestionar una biblioteca de videojuegos (integración con RAWG)
+tags:
+  - name: system
+    description: System operations
+paths:
+  /ping:
+    get:
+      tags:
+        - system
+      summary: Health check
+      operationId: ping
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "pong"
+components:
+  schemas: {}
