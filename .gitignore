@@ -55,3 +55,6 @@ bin/
 
 # Spring Boot
 help.md
+
+# Application Secrets
+application.properties
