@@ -2,24 +2,58 @@ openapi: 3.0.1
 info:
   title: Video Game Library API
   version: 1.0.0
-  description: API para gestionar una biblioteca de videojuegos (integración con RAWG)
+  description: API para gestionar una biblioteca de videojuegos (integración con IGDB)
 tags:
-  - name: system
-    description: System operations
+  - name: Games
+    description: Operaciones relacionadas con videojuegos
+
 paths:
-  /ping:
+  /games/search:
     get:
       tags:
-        - system
-      summary: Health check
-      operationId: ping
+        - Games
+      summary: Buscar videojuegos por nombre
+      operationId: searchGamesByName
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Nombre del juego a buscar
+          schema:
+            type: string
       responses:
         '200':
-          description: OK
+          description: Búsqueda exitosa
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: "pong"
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+        '400':
+          description: Parámetro 'name' no proporcionado
+
 components:
-  schemas: {}
+  schemas:
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+          description: El ID del juego (de IGDB).
+        name:
+          type: string
+          description: El nombre del juego.
+        genres:
+          type: array
+          items:
+            type: string
+          description: Lista de géneros del juego.
+        releaseDate:
+          type: string
+          format: date
+          description: Fecha de lanzamiento.
+        coverImageUrl:
+          type: string
+          format: uri
+          description: URL de la imagen de portada.
