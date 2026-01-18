@@ -12,6 +12,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -19,15 +21,21 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Component
 public class IgdbApiAdapter implements GameProviderPort {
 
     private static final Logger logger = LoggerFactory.getLogger(IgdbApiAdapter.class);
+    private static final String PLACEHOLDER_IMAGE_URL = "https://placehold.co/600x400";
 
     private final IgdbApiConfig apiConfig;
     private final RestTemplate restTemplate;
+    private final ExecutorService imageValidationExecutor = Executors.newVirtualThreadPerTaskExecutor();
+
     private String accessToken;
     private long tokenExpirationTime;
 
@@ -88,8 +96,14 @@ public class IgdbApiAdapter implements GameProviderPort {
             ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + "/games", entity, IgdbGameResponse[].class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return Arrays.stream(response.getBody())
-                        .map(this::mapToDomain)
+                List<IgdbGameResponse> igdbGames = Arrays.asList(response.getBody());
+
+                List<CompletableFuture<Game>> futures = igdbGames.stream()
+                        .map(igdbGame -> CompletableFuture.supplyAsync(() -> mapToDomain(igdbGame), imageValidationExecutor))
+                        .toList();
+
+                return futures.stream()
+                        .map(CompletableFuture::join)
                         .collect(Collectors.toList());
             }
         } catch (Exception e) {
@@ -129,7 +143,7 @@ public class IgdbApiAdapter implements GameProviderPort {
     private Game mapToDomain(IgdbGameResponse igdbGame) {
         List<String> genreNames = igdbGame.genres() != null ? igdbGame.genres().stream().map(IgdbGenreResponse::name).toList() : Collections.emptyList();
         LocalDate releaseDate = igdbGame.releaseDate() != null ? Instant.ofEpochSecond(igdbGame.releaseDate()).atZone(ZoneId.systemDefault()).toLocalDate() : null;
-        String coverUrl = igdbGame.cover() != null ? "https://images.igdb.com/igdb/image/upload/t_cover_big/" + igdbGame.cover().imageId() + ".jpg" : null;
+        String coverUrl = validateAndGetCoverUrl(igdbGame.cover());
 
         return new Game(
                 String.valueOf(igdbGame.id()),
@@ -138,5 +152,32 @@ public class IgdbApiAdapter implements GameProviderPort {
                 releaseDate,
                 coverUrl
         );
+    }
+
+    private String validateAndGetCoverUrl(IgdbCoverResponse cover) {
+        if (cover == null || cover.imageId() == null) {
+            return PLACEHOLDER_IMAGE_URL;
+        }
+
+        String imageUrl = "https://images.igdb.com/igdb/image/upload/t_cover_big/" + cover.imageId() + ".jpg";
+
+        try {
+            URI uri = new URI(imageUrl);
+            HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+            connection.setRequestMethod("HEAD");
+            connection.setConnectTimeout(2000); // 2 segundos de timeout
+            connection.setReadTimeout(2000);
+            int responseCode = connection.getResponseCode();
+
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                logger.warn("Cover image not found (HTTP {}): {}. Using placeholder.", responseCode, imageUrl);
+                return PLACEHOLDER_IMAGE_URL;
+            }
+        } catch (Exception e) {
+            logger.error("Error validating cover image URL: {}. Using placeholder.", imageUrl, e);
+            return PLACEHOLDER_IMAGE_URL;
+        }
+
+        return imageUrl;
     }
 }
