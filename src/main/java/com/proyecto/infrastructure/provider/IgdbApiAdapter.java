@@ -41,9 +41,23 @@ public class IgdbApiAdapter implements GameProviderPort {
 
     // DTOs para la API de IGDB
     private record AuthResponse(@JsonProperty("access_token") String accessToken, @JsonProperty("expires_in") long expiresIn) {}
-    private record IgdbGameResponse(long id, String name, List<IgdbGenreResponse> genres, @JsonProperty("first_release_date") Long releaseDate, IgdbCoverResponse cover) {}
+    private record IgdbGameResponse(
+            long id,
+            String name,
+            List<IgdbGenreResponse> genres,
+            @JsonProperty("first_release_date") Long releaseDate,
+            IgdbCoverResponse cover,
+            String summary,
+            List<IgdbVideoResponse> videos,
+            List<IgdbScreenshotResponse> screenshots,
+            List<IgdbPlatformResponse> platforms,
+            Double rating
+    ) {}
     private record IgdbGenreResponse(String name) {}
     private record IgdbCoverResponse(@JsonProperty("image_id") String imageId) {}
+    private record IgdbVideoResponse(@JsonProperty("video_id") String videoId) {}
+    private record IgdbScreenshotResponse(@JsonProperty("image_id") String imageId) {}
+    private record IgdbPlatformResponse(String name) {}
 
 
     public IgdbApiAdapter(IgdbApiConfig apiConfig, RestTemplate restTemplate) {
@@ -62,7 +76,8 @@ public class IgdbApiAdapter implements GameProviderPort {
         headers.set("Authorization", "Bearer " + accessToken);
         headers.setContentType(MediaType.TEXT_PLAIN);
 
-        String requestBody = String.format("fields name, genres.name, first_release_date, cover.image_id; where id = %s;", externalId);
+        // Añadidos campos screenshots, platforms y rating
+        String requestBody = String.format("fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating; where id = %s;", externalId);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
@@ -89,7 +104,8 @@ public class IgdbApiAdapter implements GameProviderPort {
         headers.set("Authorization", "Bearer " + accessToken);
         headers.setContentType(MediaType.TEXT_PLAIN);
 
-        String requestBody = String.format("search \"%s\"; fields name, genres.name, first_release_date, cover.image_id; limit 20;", name);
+        // Añadidos campos screenshots, platforms y rating
+        String requestBody = String.format("search \"%s\"; fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating; limit 20;", name);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
@@ -144,13 +160,37 @@ public class IgdbApiAdapter implements GameProviderPort {
         List<String> genreNames = igdbGame.genres() != null ? igdbGame.genres().stream().map(IgdbGenreResponse::name).toList() : Collections.emptyList();
         LocalDate releaseDate = igdbGame.releaseDate() != null ? Instant.ofEpochSecond(igdbGame.releaseDate()).atZone(ZoneId.systemDefault()).toLocalDate() : null;
         String coverUrl = validateAndGetCoverUrl(igdbGame.cover());
+        
+        // Mapeo de videos
+        List<String> videoUrls = igdbGame.videos() != null 
+                ? igdbGame.videos().stream()
+                    .map(v -> "https://www.youtube.com/watch?v=" + v.videoId())
+                    .toList() 
+                : Collections.emptyList();
+
+        // Mapeo de screenshots
+        List<String> screenshotUrls = igdbGame.screenshots() != null
+                ? igdbGame.screenshots().stream()
+                    .map(s -> "https://images.igdb.com/igdb/image/upload/t_screenshot_big/" + s.imageId() + ".jpg")
+                    .toList()
+                : Collections.emptyList();
+
+        // Mapeo de plataformas
+        List<String> platformNames = igdbGame.platforms() != null
+                ? igdbGame.platforms().stream().map(IgdbPlatformResponse::name).toList()
+                : Collections.emptyList();
 
         return new Game(
                 String.valueOf(igdbGame.id()),
                 igdbGame.name(),
                 genreNames,
                 releaseDate,
-                coverUrl
+                coverUrl,
+                igdbGame.summary(),
+                videoUrls,
+                screenshotUrls,
+                platformNames,
+                igdbGame.rating()
         );
     }
 

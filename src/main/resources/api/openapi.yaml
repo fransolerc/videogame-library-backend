@@ -80,3 +80,27 @@ components:
           type: string
           format: uri
           description: URL de la imagen de portada.
+        description:
+          type: string
+          description: Descripción o resumen del juego.
+        videos:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Lista de URLs de videos relacionados.
+        screenshots:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Lista de URLs de capturas de pantalla.
+        platforms:
+          type: array
+          items:
+            type: string
+          description: Lista de plataformas disponibles.
+        rating:
+          type: number
+          format: double
+          description: Puntuación media de los usuarios (0-100).
