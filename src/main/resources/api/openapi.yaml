@@ -33,6 +33,29 @@ paths:
         '400':
           description: Parámetro 'name' no proporcionado
 
+  /games/{id}:
+    get:
+      tags:
+        - Games
+      summary: Obtener un videojuego por su ID
+      operationId: getGameById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del juego a buscar
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Juego encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          description: Juego no encontrado
+
 components:
   schemas:
     Game:

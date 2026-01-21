@@ -6,6 +6,7 @@ import com.proyecto.domain.model.Game;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class SearchGamesService implements SearchGamesUseCase {
@@ -19,5 +20,10 @@ public class SearchGamesService implements SearchGamesUseCase {
     @Override
     public List<Game> searchGamesByName(String name) {
         return gameProviderPort.searchByName(name);
+    }
+
+    @Override
+    public Optional<Game> getGameById(String id) {
+        return gameProviderPort.findByExternalId(id);
     }
 }

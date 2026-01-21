@@ -1,26 +1,38 @@
 package com.proyecto.application.adapters.in.web;
 
 import com.proyecto.application.port.in.SearchGamesUseCase;
-import com.proyecto.domain.model.Game;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import com.proyecto.videogames.generated.api.GamesApi;
+import com.proyecto.videogames.generated.model.Game;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/games")
-public class GameController {
+public class GameController implements GamesApi {
 
     private final SearchGamesUseCase searchGamesUseCase;
+    private final GameMapper gameMapper;
 
-    public GameController(SearchGamesUseCase searchGamesUseCase) {
+    public GameController(SearchGamesUseCase searchGamesUseCase, GameMapper gameMapper) {
         this.searchGamesUseCase = searchGamesUseCase;
+        this.gameMapper = gameMapper;
     }
 
-    @GetMapping("/search")
-    public List<Game> searchGames(@RequestParam String name) {
-        return searchGamesUseCase.searchGamesByName(name);
+    @Override
+    public ResponseEntity<List<Game>> searchGamesByName(String name) {
+        List<Game> games = searchGamesUseCase.searchGamesByName(name).stream()
+                .map(gameMapper::toApiGame)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(games);
+    }
+
+    @Override
+    public ResponseEntity<Game> getGameById(String id) {
+        return searchGamesUseCase.getGameById(id)
+                .map(gameMapper::toApiGame)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
