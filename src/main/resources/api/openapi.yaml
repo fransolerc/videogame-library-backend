@@ -6,6 +6,8 @@ info:
 tags:
   - name: Games
     description: Operaciones relacionadas con videojuegos
+  - name: Users
+    description: Operaciones relacionadas con usuarios
 
 paths:
   /games/search:
@@ -56,6 +58,26 @@ paths:
         '404':
           description: Juego no encontrado
 
+  /users/register:
+    post:
+      tags:
+        - Users
+      summary: Registrar un nuevo usuario
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+      responses:
+        '200':
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
 components:
   schemas:
     Game:
@@ -104,3 +126,31 @@ components:
           type: number
           format: double
           description: Puntuación media de los usuarios (0-100).
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+
+    UserRegistrationRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
