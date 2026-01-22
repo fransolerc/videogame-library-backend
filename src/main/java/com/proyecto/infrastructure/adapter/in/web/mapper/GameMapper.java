@@ -1,4 +1,4 @@
-package com.proyecto.application.adapters.in.web;
+package com.proyecto.infrastructure.adapter.in.web.mapper;
 
 import com.proyecto.videogames.generated.model.Game;
 import org.springframework.stereotype.Component;

@@ -1,5 +1,6 @@
-package com.proyecto.application.adapters.in.web;
+package com.proyecto.infrastructure.adapter.in.web.controller;
 
+import com.proyecto.infrastructure.adapter.in.web.mapper.UserGameMapper;
 import com.proyecto.application.port.in.AddGameToLibraryUseCase;
 import com.proyecto.application.port.in.ListUserLibraryUseCase;
 import com.proyecto.videogames.generated.api.LibraryApi;
