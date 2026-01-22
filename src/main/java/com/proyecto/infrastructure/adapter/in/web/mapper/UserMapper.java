@@ -1,25 +1,14 @@
 package com.proyecto.infrastructure.adapter.in.web.mapper;
 
 import com.proyecto.videogames.generated.model.User;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-import java.util.UUID;
+@Mapper(componentModel = "spring")
+public interface UserMapper {
 
-@Component
-public class UserMapper {
-
-    public User toApiUser(com.proyecto.domain.model.User domainUser) {
-        if (domainUser == null) {
-            return null;
-        }
-
-        User apiUser = new User();
-        if (domainUser.id() != null) {
-            apiUser.setId(UUID.fromString(domainUser.id()));
-        }
-        apiUser.setUsername(domainUser.username());
-        apiUser.setEmail(domainUser.email());
-        
-        return apiUser;
-    }
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "username", source = "username")
+    @Mapping(target = "email", source = "email")
+    User toApiUser(com.proyecto.domain.model.User domainUser);
 }
