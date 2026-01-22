@@ -51,6 +51,33 @@ paths:
         '400':
           description: Parámetro 'name' no proporcionado
 
+  /games/filter: # Nuevo endpoint para filtrado avanzado
+    post:
+      tags:
+        - Games
+      summary: Filtrar videojuegos con criterios avanzados
+      description: >
+        Realiza una búsqueda avanzada de videojuegos en la API de IGDB utilizando una consulta de filtrado.
+        Permite filtrar, ordenar y paginar los resultados.
+      operationId: filterGames
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameFilterRequest'
+      responses:
+        '200':
+          description: Búsqueda avanzada exitosa
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+        '400':
+          description: Solicitud de filtrado inválida
+
   /games/{id}:
     get:
       tags:
@@ -332,3 +359,25 @@ components:
         token:
           type: string
           description: Token JWT para autenticación.
+
+    GameFilterRequest: # Nuevo esquema para la petición de filtrado
+      type: object
+      required:
+        - filter
+      properties:
+        filter:
+          type: string
+          description: "La consulta de filtrado en el formato de la API de IGDB. Ejemplo: 'genres = (12, 32) & platforms = (6, 48)'"
+        sort:
+          type: string
+          description: "El campo por el que ordenar los resultados. Ejemplo: 'total_rating desc'"
+        limit:
+          type: integer
+          format: int32
+          description: "El número máximo de resultados a devolver. Por defecto: 10."
+          default: 10
+        offset:
+          type: integer
+          format: int32
+          description: "El número de resultados a saltar para la paginación. Por defecto: 0."
+          default: 0
