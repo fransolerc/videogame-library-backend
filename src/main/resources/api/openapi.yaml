@@ -18,6 +18,9 @@ tags:
   - name: Library
     description: Operaciones relacionadas con la biblioteca de juegos de un usuario
 
+security: # Seguridad global para todos los endpoints (excepto los que tienen 'permitAll')
+  - bearerAuth: []
+
 paths:
   /games/search:
     get:
@@ -102,6 +105,31 @@ paths:
         '409':
           description: El usuario con este email ya existe
 
+  /users/login:
+    post:
+      tags:
+        - Users
+      summary: Iniciar sesión de usuario
+      description: >
+        Autentica a un usuario con su email y contraseña.
+        Si las credenciales son válidas, devuelve los datos del usuario (sin la contraseña).
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciales inválidas
+
   /users/{userId}/games:
     get:
       tags:
@@ -165,8 +193,12 @@ paths:
           description: Solicitud inválida
         '404':
           description: Usuario o juego no encontrado
-
 components:
+  securitySchemes: # Definición del esquema de seguridad
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Game:
       type: object
@@ -278,3 +310,25 @@ components:
         addedAt:
           type: string
           format: date-time
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Correo electrónico del usuario.
+        password:
+          type: string
+          format: password
+          description: Contraseña del usuario.
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Token JWT para autenticación.
