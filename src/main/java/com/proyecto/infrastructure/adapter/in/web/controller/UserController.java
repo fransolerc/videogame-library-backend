@@ -1,5 +1,6 @@
-package com.proyecto.application.adapters.in.web;
+package com.proyecto.infrastructure.adapter.in.web.controller;
 
+import com.proyecto.infrastructure.adapter.in.web.mapper.UserMapper;
 import com.proyecto.application.port.in.LoginUserUseCase;
 import com.proyecto.application.port.in.RegisterUserUseCase;
 import com.proyecto.videogames.generated.api.UsersApi;
