@@ -14,7 +14,7 @@
 	<name>videogame-library-backend</name>
 	<description>Proyecto Video Game Library</description>
 	<properties>
-		<java.version>25</java.version>
+		<java.version>21</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
@@ -99,7 +99,7 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.11.0</version>
 				<configuration>
-					<release>25</release>
+					<release>21</release>
 				</configuration>
 			</plugin>
 
