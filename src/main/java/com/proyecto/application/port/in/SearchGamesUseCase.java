@@ -23,6 +23,6 @@ public interface SearchGamesUseCase {
      * @param id El ID del juego.
      * @return Un Optional con el juego si se encuentra.
      */
-    Optional<Game> getGameById(String id);
+    Optional<Game> getGameById(Long id);
 
 }

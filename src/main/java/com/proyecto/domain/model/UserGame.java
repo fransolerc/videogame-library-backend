@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  */
 public record UserGame(
         String userId,
-        String gameId,
+        Long gameId,
         GameStatus status,
         LocalDateTime addedAt
 ) {

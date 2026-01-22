@@ -15,7 +15,7 @@ public interface GameProviderPort {
      * @param externalId El ID del juego en el sistema del proveedor (ej. IGDB).
      * @return Un Optional que contiene el juego si se encuentra, o un Optional vacío si no.
      */
-    Optional<Game> findByExternalId(String externalId);
+    Optional<Game> findByExternalId(Long externalId);
 
     /**
      * Busca juegos por su nombre en el proveedor externo.

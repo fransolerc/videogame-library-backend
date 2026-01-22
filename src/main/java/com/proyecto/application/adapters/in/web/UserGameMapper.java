@@ -20,7 +20,7 @@ public class UserGameMapper {
         apiUserGame.setUserId(UUID.fromString(domainUserGame.userId()));
         apiUserGame.setGameId(domainUserGame.gameId());
         apiUserGame.setStatus(com.proyecto.videogames.generated.model.GameStatus.fromValue(domainUserGame.status().name()));
-        apiUserGame.setAddedAt(OffsetDateTime.of(domainUserGame.addedAt(), ZoneOffset.UTC)); // Asumiendo UTC para la API
+        apiUserGame.setAddedAt(OffsetDateTime.of(domainUserGame.addedAt(), ZoneOffset.UTC));
 
         return apiUserGame;
     }

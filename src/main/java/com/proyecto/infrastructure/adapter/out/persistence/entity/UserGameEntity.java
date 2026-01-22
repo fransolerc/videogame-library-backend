@@ -17,7 +17,7 @@ public class UserGameEntity {
     private UserEntity user;
 
     @Column(name = "game_id", nullable = false)
-    private String gameId; // ID externo de IGDB
+    private Long gameId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -31,7 +31,7 @@ public class UserGameEntity {
         this.addedAt = LocalDateTime.now();
     }
 
-    public UserGameEntity(UserEntity user, String gameId, GameStatus status) {
+    public UserGameEntity(UserEntity user, Long gameId, GameStatus status) {
         this();
         this.user = user;
         this.gameId = gameId;
@@ -55,11 +55,11 @@ public class UserGameEntity {
         this.user = user;
     }
 
-    public String getGameId() {
+    public Long getGameId() {
         return gameId;
     }
 
-    public void setGameId(String gameId) {
+    public void setGameId(Long gameId) {
         this.gameId = gameId;
     }
 

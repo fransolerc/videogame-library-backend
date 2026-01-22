@@ -34,7 +34,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
     }
 
     @Override
-    public Optional<UserGame> findByUserIdAndGameId(String userId, String gameId) {
+    public Optional<UserGame> findByUserIdAndGameId(String userId, Long gameId) {
         return userGameRepository.findByUser_IdAndGameId(userId, gameId).map(this::toDomain);
     }
 
