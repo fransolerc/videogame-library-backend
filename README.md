@@ -94,3 +94,4 @@ El proyecto sigue los principios de la **Arquitectura Hexagonal** para separar e
 - **`domain`**: Contiene la lógica y las entidades del negocio (el "corazón" de la aplicación). No depende de nada.
 - **`application`**: Orquesta los flujos de trabajo. Contiene los *puertos* (interfaces) y los *casos de uso* (servicios).
 - **`infrastructure`**: Contiene las implementaciones concretas de los puertos (los "adaptadores"), como controladores REST, clientes de API externas (IGDB), etc.
+
