@@ -2,33 +2,25 @@ package com.proyecto.infrastructure.adapter.in.web.mapper;
 
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.videogames.generated.model.UserGame;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.UUID;
 
-@Component
-public class UserGameMapper {
+@Mapper(componentModel = "spring")
+public interface UserGameMapper {
 
-    public UserGame toApiUserGame(com.proyecto.domain.model.UserGame domainUserGame) {
-        if (domainUserGame == null) {
-            return null;
-        }
+    @Mapping(target = "userId", source = "userId")
+    @Mapping(target = "gameId", source = "gameId")
+    @Mapping(target = "status", source = "status")
+    @Mapping(target = "addedAt", source = "addedAt")
+    UserGame toApiUserGame(com.proyecto.domain.model.UserGame domainUserGame);
 
-        UserGame apiUserGame = new UserGame();
-        apiUserGame.setUserId(UUID.fromString(domainUserGame.userId()));
-        apiUserGame.setGameId(domainUserGame.gameId());
-        apiUserGame.setStatus(com.proyecto.videogames.generated.model.GameStatus.fromValue(domainUserGame.status().name()));
-        apiUserGame.setAddedAt(OffsetDateTime.of(domainUserGame.addedAt(), ZoneOffset.UTC));
+    GameStatus toDomainGameStatus(com.proyecto.videogames.generated.model.GameStatus apiGameStatus);
 
-        return apiUserGame;
-    }
-
-    public GameStatus toDomainGameStatus(com.proyecto.videogames.generated.model.GameStatus apiGameStatus) {
-        if (apiGameStatus == null) {
-            return null;
-        }
-        return GameStatus.valueOf(apiGameStatus.name());
+    default OffsetDateTime map(LocalDateTime value) {
+        return value != null ? value.atOffset(ZoneOffset.UTC) : null;
     }
 }
