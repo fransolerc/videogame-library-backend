@@ -127,6 +127,54 @@ public class IgdbApiAdapter implements GameProviderPort {
         return Collections.emptyList();
     }
 
+    @Override
+    public List<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
+        if (isTokenInvalid()) {
+            authenticate();
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Client-ID", apiConfig.getClientId());
+        headers.set("Authorization", "Bearer " + accessToken);
+        headers.setContentType(MediaType.TEXT_PLAIN);
+
+        StringBuilder requestBodyBuilder = new StringBuilder();
+        requestBodyBuilder.append("fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating;");
+
+        if (filter != null && !filter.isEmpty()) {
+            requestBodyBuilder.append(" where ").append(filter).append(";");
+        }
+
+        if (sort != null && !sort.isEmpty()) {
+            requestBodyBuilder.append(" sort ").append(sort).append(";");
+        }
+
+        requestBodyBuilder.append(" limit ").append(limit != null ? limit : 10).append(";");
+        requestBodyBuilder.append(" offset ").append(offset != null ? offset : 0).append(";");
+
+        HttpEntity<String> entity = new HttpEntity<>(requestBodyBuilder.toString(), headers);
+
+        try {
+            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + "/games", entity, IgdbGameResponse[].class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<IgdbGameResponse> igdbGames = Arrays.asList(response.getBody());
+
+                List<CompletableFuture<Game>> futures = igdbGames.stream()
+                        .map(igdbGame -> CompletableFuture.supplyAsync(() -> mapToDomain(igdbGame), imageValidationExecutor))
+                        .toList();
+
+                return futures.stream()
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            logger.error("Error filtering games with filter '{}' from IGDB", filter, e);
+        }
+
+        return Collections.emptyList();
+    }
+
     private void authenticate() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
