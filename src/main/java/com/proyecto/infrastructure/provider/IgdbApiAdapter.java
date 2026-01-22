@@ -66,7 +66,7 @@ public class IgdbApiAdapter implements GameProviderPort {
     }
 
     @Override
-    public Optional<Game> findByExternalId(String externalId) {
+    public Optional<Game> findByExternalId(Long externalId) {
         if (isTokenInvalid()) {
             authenticate();
         }

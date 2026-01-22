@@ -3,6 +3,13 @@ info:
   title: Video Game Library API
   version: 1.0.0
   description: API para gestionar una biblioteca de videojuegos (integración con IGDB)
+  contact:
+    name: Francisco José Soler Conchello
+    email: franciscosoler.dev@gmail.com
+    url: https://www.linkedin.com/in/franciscojosesoler/
+servers:
+  - url: http://localhost:8080
+    description: Servidor de desarrollo local
 tags:
   - name: Games
     description: Operaciones relacionadas con videojuegos
@@ -17,6 +24,9 @@ paths:
       tags:
         - Games
       summary: Buscar videojuegos por nombre
+      description: >
+        Busca videojuegos en la API externa de IGDB por su nombre.
+        Devuelve una lista de juegos que coinciden con el término de búsqueda.
       operationId: searchGamesByName
       parameters:
         - name: name
@@ -25,6 +35,7 @@ paths:
           description: Nombre del juego a buscar
           schema:
             type: string
+            maxLength: 255
       responses:
         '200':
           description: Búsqueda exitosa
@@ -42,6 +53,8 @@ paths:
       tags:
         - Games
       summary: Obtener un videojuego por su ID
+      description: >
+        Obtiene los detalles completos de un videojuego específico a partir de su ID de IGDB.
       operationId: getGameById
       parameters:
         - name: id
@@ -49,7 +62,8 @@ paths:
           required: true
           description: ID del juego a buscar
           schema:
-            type: string
+            type: integer
+            format: int64
       responses:
         '200':
           description: Juego encontrado
@@ -65,6 +79,9 @@ paths:
       tags:
         - Users
       summary: Registrar un nuevo usuario
+      description: >
+        Crea un nuevo usuario en el sistema.
+        Requiere un nombre de usuario, un email y una contraseña.
       operationId: registerUser
       requestBody:
         required: true
@@ -73,18 +90,53 @@ paths:
             schema:
               $ref: '#/components/schemas/UserRegistrationRequest'
       responses:
-        '200':
+        '201':
           description: Usuario registrado exitosamente
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '400':
+          description: Datos de registro inválidos
+        '409':
+          description: El usuario con este email ya existe
 
-  /users/{userId}/library/games:
+  /users/{userId}/games:
+    get:
+      tags:
+        - Library
+      summary: Listar todos los juegos en la biblioteca de un usuario
+      description: >
+        Devuelve una lista de todos los juegos que un usuario ha añadido a su biblioteca,
+        incluyendo el estado de cada juego.
+      operationId: listUserLibrary
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+            maxLength: 36
+      responses:
+        '200':
+          description: Lista de juegos en la biblioteca del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserGame'
+        '404':
+          description: Usuario no encontrado
     post:
       tags:
         - Library
       summary: Añadir un juego a la biblioteca de un usuario o actualizar su estado
+      description: >
+        Añade un nuevo juego a la biblioteca de un usuario o, si el juego ya existe,
+        actualiza su estado (ej. de 'WANT_TO_PLAY' a 'PLAYING').
       operationId: addGameToLibrary
       parameters:
         - name: userId
@@ -94,6 +146,7 @@ paths:
           schema:
             type: string
             format: uuid
+            maxLength: 36
       requestBody:
         required: true
         content:
@@ -204,11 +257,11 @@ components:
         - status
       properties:
         gameId:
-          type: string
+          type: integer
+          format: int64
           description: ID del juego a añadir (ID de IGDB).
         status:
           $ref: '#/components/schemas/GameStatus'
-          description: Estado del juego en la biblioteca.
 
     UserGame:
       type: object
@@ -217,7 +270,8 @@ components:
           type: string
           format: uuid
         gameId:
-          type: string
+          type: integer
+          format: int64
         status:
           $ref: '#/components/schemas/GameStatus'
         addedAt:

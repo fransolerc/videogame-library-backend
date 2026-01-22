@@ -29,7 +29,7 @@ public class GameController implements GamesApi {
     }
 
     @Override
-    public ResponseEntity<Game> getGameById(String id) {
+    public ResponseEntity<Game> getGameById(Long id) {
         return searchGamesUseCase.getGameById(id)
                 .map(gameMapper::toApiGame)
                 .map(ResponseEntity::ok)

@@ -6,6 +6,6 @@ import java.util.Optional;
 
 public interface LibraryRepositoryPort {
     UserGame save(UserGame userGame);
-    Optional<UserGame> findByUserIdAndGameId(String userId, String gameId);
+    Optional<UserGame> findByUserIdAndGameId(String userId, Long gameId);
     List<UserGame> findByUserId(String userId);
 }

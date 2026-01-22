@@ -23,7 +23,7 @@ public class SearchGamesService implements SearchGamesUseCase {
     }
 
     @Override
-    public Optional<Game> getGameById(String id) {
+    public Optional<Game> getGameById(Long id) {
         return gameProviderPort.findByExternalId(id);
     }
 }
