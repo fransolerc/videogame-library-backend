@@ -8,8 +8,8 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
 
 ## Tecnologías Principales
 
-- **Java 25**: Utilizando características modernas como **Hilos Virtuales** para mejorar el rendimiento de las operaciones de red.
-- **Spring Boot 3**
+- **Java 25**
+- **Spring Boot 4**
 - **Maven**
 - **Spring Data JPA / Hibernate**: Para la persistencia de datos (si se implementa).
 - **H2 Database**: Base de datos en memoria para desarrollo.
@@ -94,4 +94,3 @@ El proyecto sigue los principios de la **Arquitectura Hexagonal** para separar e
 - **`domain`**: Contiene la lógica y las entidades del negocio (el "corazón" de la aplicación). No depende de nada.
 - **`application`**: Orquesta los flujos de trabajo. Contiene los *puertos* (interfaces) y los *casos de uso* (servicios).
 - **`infrastructure`**: Contiene las implementaciones concretas de los puertos (los "adaptadores"), como controladores REST, clientes de API externas (IGDB), etc.
-
