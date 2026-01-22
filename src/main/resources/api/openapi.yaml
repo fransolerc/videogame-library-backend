@@ -80,9 +80,9 @@ components:
           type: string
           format: uri
           description: URL de la imagen de portada.
-        description:
+        summary:
           type: string
-          description: Descripción o resumen del juego.
+          description: Resumen detallado del juego.
         videos:
           type: array
           items:

@@ -76,7 +76,6 @@ public class IgdbApiAdapter implements GameProviderPort {
         headers.set("Authorization", "Bearer " + accessToken);
         headers.setContentType(MediaType.TEXT_PLAIN);
 
-        // Añadidos campos screenshots, platforms y rating
         String requestBody = String.format("fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating; where id = %s;", externalId);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
@@ -104,7 +103,6 @@ public class IgdbApiAdapter implements GameProviderPort {
         headers.set("Authorization", "Bearer " + accessToken);
         headers.setContentType(MediaType.TEXT_PLAIN);
 
-        // Añadidos campos screenshots, platforms y rating
         String requestBody = String.format("search \"%s\"; fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating; limit 20;", name);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
@@ -168,14 +166,12 @@ public class IgdbApiAdapter implements GameProviderPort {
                     .toList() 
                 : Collections.emptyList();
 
-        // Mapeo de screenshots
         List<String> screenshotUrls = igdbGame.screenshots() != null
                 ? igdbGame.screenshots().stream()
                     .map(s -> "https://images.igdb.com/igdb/image/upload/t_screenshot_big/" + s.imageId() + ".jpg")
                     .toList()
                 : Collections.emptyList();
 
-        // Mapeo de plataformas
         List<String> platformNames = igdbGame.platforms() != null
                 ? igdbGame.platforms().stream().map(IgdbPlatformResponse::name).toList()
                 : Collections.emptyList();

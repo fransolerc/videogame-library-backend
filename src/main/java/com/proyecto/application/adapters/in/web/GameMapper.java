@@ -21,7 +21,7 @@ public class GameMapper {
         apiGame.setName(domainGame.name());
         apiGame.setGenres(domainGame.genres());
         apiGame.setReleaseDate(domainGame.releaseDate());
-        apiGame.setDescription(domainGame.description());
+        apiGame.setSummary(domainGame.summary());
         apiGame.setRating(domainGame.rating());
         apiGame.setPlatforms(domainGame.platforms());
         

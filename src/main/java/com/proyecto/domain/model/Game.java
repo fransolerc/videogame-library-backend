@@ -11,7 +11,7 @@ import java.util.List;
  * @param genres        Una lista de géneros a los que pertenece el juego.
  * @param releaseDate   La fecha de lanzamiento.
  * @param coverImageUrl La URL de la imagen de portada.
- * @param description   La descripción o resumen del juego.
+ * @param summary       El resumen detallado del juego.
  * @param videos        Lista de URLs de videos relacionados (trailers, gameplays).
  * @param screenshots   Lista de URLs de capturas de pantalla.
  * @param platforms     Lista de nombres de plataformas donde está disponible.
@@ -23,7 +23,7 @@ public record Game(
         List<String> genres,
         LocalDate releaseDate,
         String coverImageUrl,
-        String description,
+        String summary,
         List<String> videos,
         List<String> screenshots,
         List<String> platforms,
