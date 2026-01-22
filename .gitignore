@@ -58,3 +58,4 @@ help.md
 
 # Application Secrets
 application.properties
+application.yml
