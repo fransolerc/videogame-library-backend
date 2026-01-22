@@ -2,7 +2,10 @@ package com.proyecto.infrastructure.provider;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.proyecto.application.port.out.GameProviderPort;
+import com.proyecto.application.port.out.PlatformProviderPort;
 import com.proyecto.domain.model.Game;
+import com.proyecto.domain.model.Platform;
+import com.proyecto.domain.model.PlatformType;
 import com.proyecto.infrastructure.config.IgdbApiConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Component
-public class IgdbApiAdapter implements GameProviderPort {
+public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
 
     private static final Logger logger = LoggerFactory.getLogger(IgdbApiAdapter.class);
     private static final String PLACEHOLDER_IMAGE_URL = "https://placehold.co/600x400";
@@ -57,7 +60,12 @@ public class IgdbApiAdapter implements GameProviderPort {
     private record IgdbCoverResponse(@JsonProperty("image_id") String imageId) {}
     private record IgdbVideoResponse(@JsonProperty("video_id") String videoId) {}
     private record IgdbScreenshotResponse(@JsonProperty("image_id") String imageId) {}
-    private record IgdbPlatformResponse(String name) {}
+    private record IgdbPlatformResponse(
+            long id,
+            String name,
+            Integer generation,
+            @JsonProperty("platform_type") Integer platformType
+    ) {}
 
 
     public IgdbApiAdapter(IgdbApiConfig apiConfig, RestTemplate restTemplate) {
@@ -175,6 +183,35 @@ public class IgdbApiAdapter implements GameProviderPort {
         return Collections.emptyList();
     }
 
+    @Override
+    public List<Platform> listPlatforms() {
+        if (isTokenInvalid()) {
+            authenticate();
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Client-ID", apiConfig.getClientId());
+        headers.set("Authorization", "Bearer " + accessToken);
+        headers.setContentType(MediaType.TEXT_PLAIN);
+
+        String requestBody = "fields name, generation, platform_type; sort name asc; limit 500;";
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<IgdbPlatformResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + "/platforms", entity, IgdbPlatformResponse[].class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return Arrays.stream(response.getBody())
+                        .map(this::mapToDomain)
+                        .collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching platforms from IGDB", e);
+        }
+
+        return Collections.emptyList();
+    }
+
     private void authenticate() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -206,8 +243,7 @@ public class IgdbApiAdapter implements GameProviderPort {
         List<String> genreNames = igdbGame.genres() != null ? igdbGame.genres().stream().map(IgdbGenreResponse::name).toList() : Collections.emptyList();
         LocalDate releaseDate = igdbGame.releaseDate() != null ? Instant.ofEpochSecond(igdbGame.releaseDate()).atZone(ZoneId.systemDefault()).toLocalDate() : null;
         String coverUrl = validateAndGetCoverUrl(igdbGame.cover());
-        
-        // Mapeo de videos
+
         List<String> videoUrls = igdbGame.videos() != null 
                 ? igdbGame.videos().stream()
                     .map(v -> "https://www.youtube.com/watch?v=" + v.videoId())
@@ -238,6 +274,10 @@ public class IgdbApiAdapter implements GameProviderPort {
         );
     }
 
+    private Platform mapToDomain(IgdbPlatformResponse igdbPlatform) {
+        return new Platform(igdbPlatform.id(), igdbPlatform.name(), igdbPlatform.generation(), PlatformType.fromValue(igdbPlatform.platformType()));
+    }
+
     private String validateAndGetCoverUrl(IgdbCoverResponse cover) {
         if (cover == null || cover.imageId() == null) {
             return PLACEHOLDER_IMAGE_URL;
@@ -249,7 +289,7 @@ public class IgdbApiAdapter implements GameProviderPort {
             URI uri = new URI(imageUrl);
             HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
             connection.setRequestMethod("HEAD");
-            connection.setConnectTimeout(2000); // 2 segundos de timeout
+            connection.setConnectTimeout(2000);
             connection.setReadTimeout(2000);
             int responseCode = connection.getResponseCode();
 
