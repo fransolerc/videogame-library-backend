@@ -64,7 +64,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/v3/api-docs.yaml",
                                 "/webjars/**",
-                                "/api/openapi.yaml"
+                                "/api/openapi.yaml",
+                                "/platforms"
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

@@ -13,6 +13,8 @@ servers:
 tags:
   - name: Games
     description: Operaciones relacionadas con videojuegos
+  - name: Platforms
+    description: Operaciones relacionadas con plataformas de videojuegos
   - name: Users
     description: Operaciones relacionadas con usuarios
   - name: Library
@@ -104,6 +106,24 @@ paths:
                 $ref: '#/components/schemas/Game'
         '404':
           description: Juego no encontrado
+
+  /platforms:
+    get:
+      tags:
+        - Platforms
+      summary: Listar todas las plataformas de videojuegos
+      description: >
+        Devuelve una lista de todas las plataformas de videojuegos disponibles en IGDB.
+      operationId: listPlatforms
+      responses:
+        '200':
+          description: Lista de plataformas obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Platform'
 
   /users/register:
     post:
@@ -273,6 +293,32 @@ components:
           type: number
           format: double
           description: Puntuación media de los usuarios (0-100).
+
+    Platform:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: El ID de la plataforma (de IGDB).
+        name:
+          type: string
+          description: El nombre de la plataforma.
+        generation:
+          type: integer
+          format: int32
+          description: La generación de la plataforma.
+        platformType:
+          type: string
+          description: El tipo de plataforma.
+          enum:
+            - CONSOLE
+            - ARCADE
+            - PLATFORM
+            - OPERATING_SYSTEM
+            - PORTABLE_CONSOLE
+            - COMPUTER
+            - UNKNOWN
 
     User:
       type: object
