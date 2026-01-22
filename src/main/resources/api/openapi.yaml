@@ -8,6 +8,8 @@ tags:
     description: Operaciones relacionadas con videojuegos
   - name: Users
     description: Operaciones relacionadas con usuarios
+  - name: Library
+    description: Operaciones relacionadas con la biblioteca de juegos de un usuario
 
 paths:
   /games/search:
@@ -77,6 +79,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+
+  /users/{userId}/library/games:
+    post:
+      tags:
+        - Library
+      summary: Añadir un juego a la biblioteca de un usuario o actualizar su estado
+      operationId: addGameToLibrary
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddGameToLibraryRequest'
+      responses:
+        '200':
+          description: Juego añadido/actualizado en la biblioteca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserGame'
+        '400':
+          description: Solicitud inválida
+        '404':
+          description: Usuario o juego no encontrado
 
 components:
   schemas:
@@ -154,3 +188,38 @@ components:
         password:
           type: string
           format: password
+
+    GameStatus:
+      type: string
+      enum:
+        - WANT_TO_PLAY
+        - PLAYING
+        - COMPLETED
+        - DROPPED
+
+    AddGameToLibraryRequest:
+      type: object
+      required:
+        - gameId
+        - status
+      properties:
+        gameId:
+          type: string
+          description: ID del juego a añadir (ID de IGDB).
+        status:
+          $ref: '#/components/schemas/GameStatus'
+          description: Estado del juego en la biblioteca.
+
+    UserGame:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        gameId:
+          type: string
+        status:
+          $ref: '#/components/schemas/GameStatus'
+        addedAt:
+          type: string
+          format: date-time
