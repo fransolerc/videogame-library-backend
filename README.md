@@ -92,15 +92,8 @@ Todos los endpoints protegidos requieren un token JWT en la cabecera `Authorizat
 -   **`GET /games/{id}`**: Obtiene los detalles completos de un videojuego por su ID de IGDB.
     -   **Ejemplo**: `http://localhost:8080/games/1115` (para "The Legend of Zelda: Ocarina of Time")
 -   **`POST /games/filter`**: Realiza una búsqueda avanzada de videojuegos con filtros, ordenación y paginación.
-    -   **Ejemplo (últimos lanzamientos)**:
-        ```json
-{
-  "filter": "first_release_date <= " + "(Math.floor(Date.now()" / 1000)),
-  "sort": "first_release_date desc",
-  "limit": 20,
-  "offset": 0
-}
-```
+
+
 
 ### Endpoints de Plataformas
 
