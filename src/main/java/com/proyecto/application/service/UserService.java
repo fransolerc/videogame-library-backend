@@ -3,6 +3,7 @@ package com.proyecto.application.service;
 import com.proyecto.application.port.in.LoginUserUseCase;
 import com.proyecto.application.port.in.RegisterUserUseCase;
 import com.proyecto.application.port.out.UserRepositoryPort;
+import com.proyecto.domain.exception.EmailAlreadyExistsException;
 import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.security.jwt.JwtTokenProvider;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,7 +34,7 @@ public class UserService implements RegisterUserUseCase, LoginUserUseCase {
     @Override
     public User registerUser(String username, String email, String password) {
         userRepositoryPort.findByEmail(email).ifPresent(_ -> {
-            throw new RuntimeException("Email already exists");
+            throw new EmailAlreadyExistsException("El email '" + email + "' ya está registrado.");
         });
 
         String encodedPassword = passwordEncoder.encode(password);
@@ -54,7 +55,7 @@ public class UserService implements RegisterUserUseCase, LoginUserUseCase {
 
             String jwt = jwtTokenProvider.generateToken(authentication);
             return Optional.of(jwt);
-        } catch (Exception e) {
+        } catch (Exception _) {
             return Optional.empty();
         }
     }

@@ -38,7 +38,6 @@ public class UserGameEntity {
         this.status = status;
     }
 
-    // Getters y Setters
     public String getId() {
         return id;
     }

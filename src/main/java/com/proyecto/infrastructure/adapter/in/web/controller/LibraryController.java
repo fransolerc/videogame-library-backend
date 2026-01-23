@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 public class LibraryController implements LibraryApi {
@@ -35,8 +34,11 @@ public class LibraryController implements LibraryApi {
             @NotNull @PathVariable("userId") UUID userId,
             @Valid @RequestBody AddGameToLibraryRequest addGameToLibraryRequest
     ) {
+        // Usar String.format para construir la cadena del userId
+        String userIdString = String.format("%s", userId);
+
         com.proyecto.domain.model.UserGame domainUserGame = addGameToLibraryUseCase.addGameToLibrary(
-                userId.toString(),
+                userIdString,
                 addGameToLibraryRequest.getGameId(),
                 userGameMapper.toDomainGameStatus(addGameToLibraryRequest.getStatus())
         );
@@ -47,10 +49,12 @@ public class LibraryController implements LibraryApi {
 
     @Override
     public ResponseEntity<List<UserGame>> listUserLibrary(@NotNull @PathVariable("userId") UUID userId) {
-        List<com.proyecto.domain.model.UserGame> domainUserGames = listUserLibraryUseCase.listUserLibrary(userId.toString());
+        String userIdString = String.format("%s", userId);
+
+        List<com.proyecto.domain.model.UserGame> domainUserGames = listUserLibraryUseCase.listUserLibrary(userIdString);
         List<UserGame> apiUserGames = domainUserGames.stream()
                 .map(userGameMapper::toApiUserGame)
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(apiUserGames);
     }
 }

@@ -27,13 +27,17 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 @Component
 public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
 
     private static final Logger logger = LoggerFactory.getLogger(IgdbApiAdapter.class);
+    private static final String GAMES_URL = "/games";
     private static final String PLACEHOLDER_IMAGE_URL = "https://placehold.co/600x400";
+    private static final String HEADER_CLIENT_ID = "Client-ID";
+    private static final String HEADER_AUTHORIZATION = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String FIELDS_GAME_BASE = "fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating;";
 
     private final IgdbApiConfig apiConfig;
     private final RestTemplate restTemplate;
@@ -41,8 +45,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
 
     private String accessToken;
     private long tokenExpirationTime;
-
-    // DTOs para la API de IGDB
+    
     private record AuthResponse(@JsonProperty("access_token") String accessToken, @JsonProperty("expires_in") long expiresIn) {}
     private record IgdbGameResponse(
             long id,
@@ -79,19 +82,16 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             authenticate();
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Client-ID", apiConfig.getClientId());
-        headers.set("Authorization", "Bearer " + accessToken);
-        headers.setContentType(MediaType.TEXT_PLAIN);
-
-        String requestBody = String.format("fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating; where id = %s;", externalId);
+        HttpHeaders headers = createHeaders();
+        String requestBody = String.format("%s where id = %s;", FIELDS_GAME_BASE, externalId);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + "/games", entity, IgdbGameResponse[].class);
+            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + GAMES_URL, entity, IgdbGameResponse[].class);
+            IgdbGameResponse[] responseBody = response.getBody();
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null && response.getBody().length > 0) {
-                return Optional.of(mapToDomain(response.getBody()[0]));
+            if (response.getStatusCode() == HttpStatus.OK && responseBody != null && responseBody.length > 0) {
+                return Optional.of(mapToDomain(responseBody[0]));
             }
         } catch (Exception e) {
             logger.error("Error fetching game with id {} from IGDB", externalId, e);
@@ -106,27 +106,17 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             authenticate();
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Client-ID", apiConfig.getClientId());
-        headers.set("Authorization", "Bearer " + accessToken);
-        headers.setContentType(MediaType.TEXT_PLAIN);
-
-        String requestBody = String.format("search \"%s\"; fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating; limit 20;", name);
+        HttpHeaders headers = createHeaders();
+        String requestBody = String.format("search \"%s\"; %s limit 20;", name, FIELDS_GAME_BASE);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + "/games", entity, IgdbGameResponse[].class);
+            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + GAMES_URL, entity, IgdbGameResponse[].class);
+            IgdbGameResponse[] responseBody = response.getBody();
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                List<IgdbGameResponse> igdbGames = Arrays.asList(response.getBody());
-
-                List<CompletableFuture<Game>> futures = igdbGames.stream()
-                        .map(igdbGame -> CompletableFuture.supplyAsync(() -> mapToDomain(igdbGame), imageValidationExecutor))
-                        .toList();
-
-                return futures.stream()
-                        .map(CompletableFuture::join)
-                        .collect(Collectors.toList());
+            if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
+                List<IgdbGameResponse> igdbGames = Arrays.asList(responseBody);
+                return processGamesAsync(igdbGames);
             }
         } catch (Exception e) {
             logger.error("Error searching for games with name '{}' from IGDB", name, e);
@@ -141,13 +131,9 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             authenticate();
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Client-ID", apiConfig.getClientId());
-        headers.set("Authorization", "Bearer " + accessToken);
-        headers.setContentType(MediaType.TEXT_PLAIN);
-
+        HttpHeaders headers = createHeaders();
         StringBuilder requestBodyBuilder = new StringBuilder();
-        requestBodyBuilder.append("fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating;");
+        requestBodyBuilder.append(FIELDS_GAME_BASE);
 
         if (filter != null && !filter.isEmpty()) {
             requestBodyBuilder.append(" where ").append(filter).append(";");
@@ -163,18 +149,12 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
         HttpEntity<String> entity = new HttpEntity<>(requestBodyBuilder.toString(), headers);
 
         try {
-            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + "/games", entity, IgdbGameResponse[].class);
+            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + GAMES_URL, entity, IgdbGameResponse[].class);
+            IgdbGameResponse[] responseBody = response.getBody();
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                List<IgdbGameResponse> igdbGames = Arrays.asList(response.getBody());
-
-                List<CompletableFuture<Game>> futures = igdbGames.stream()
-                        .map(igdbGame -> CompletableFuture.supplyAsync(() -> mapToDomain(igdbGame), imageValidationExecutor))
-                        .toList();
-
-                return futures.stream()
-                        .map(CompletableFuture::join)
-                        .collect(Collectors.toList());
+            if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
+                List<IgdbGameResponse> igdbGames = Arrays.asList(responseBody);
+                return processGamesAsync(igdbGames);
             }
         } catch (Exception e) {
             logger.error("Error filtering games with filter '{}' from IGDB", filter, e);
@@ -189,27 +169,42 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             authenticate();
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Client-ID", apiConfig.getClientId());
-        headers.set("Authorization", "Bearer " + accessToken);
-        headers.setContentType(MediaType.TEXT_PLAIN);
-
+        HttpHeaders headers = createHeaders();
         String requestBody = "fields name, generation, platform_type; sort name asc; limit 500;";
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
             ResponseEntity<IgdbPlatformResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + "/platforms", entity, IgdbPlatformResponse[].class);
+            IgdbPlatformResponse[] responseBody = response.getBody();
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return Arrays.stream(response.getBody())
+            if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
+                return Arrays.stream(responseBody)
                         .map(this::mapToDomain)
-                        .collect(Collectors.toList());
+                        .toList();
             }
         } catch (Exception e) {
             logger.error("Error fetching platforms from IGDB", e);
         }
 
         return Collections.emptyList();
+    }
+
+    private HttpHeaders createHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HEADER_CLIENT_ID, apiConfig.getClientId());
+        headers.set(HEADER_AUTHORIZATION, BEARER_PREFIX + accessToken);
+        headers.setContentType(MediaType.TEXT_PLAIN);
+        return headers;
+    }
+
+    private List<Game> processGamesAsync(List<IgdbGameResponse> igdbGames) {
+        List<CompletableFuture<Game>> futures = igdbGames.stream()
+                .map(igdbGame -> CompletableFuture.supplyAsync(() -> mapToDomain(igdbGame), imageValidationExecutor))
+                .toList();
+
+        return futures.stream()
+                .map(CompletableFuture::join)
+                .toList();
     }
 
     private void authenticate() {
