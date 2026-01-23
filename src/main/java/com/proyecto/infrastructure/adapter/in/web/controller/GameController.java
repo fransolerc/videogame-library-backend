@@ -12,13 +12,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 public class GameController implements GamesApi {
 
     private final SearchGamesUseCase searchGamesUseCase;
-    private final FilterGamesUseCase filterGamesUseCase; // Inyectar FilterGamesUseCase
+    private final FilterGamesUseCase filterGamesUseCase;
     private final GameMapper gameMapper;
 
     public GameController(SearchGamesUseCase searchGamesUseCase, FilterGamesUseCase filterGamesUseCase, GameMapper gameMapper) {
@@ -31,7 +30,7 @@ public class GameController implements GamesApi {
     public ResponseEntity<List<Game>> searchGamesByName(String name) {
         List<Game> games = searchGamesUseCase.searchGamesByName(name).stream()
                 .map(gameMapper::toApiGame)
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(games);
     }
 
@@ -54,7 +53,7 @@ public class GameController implements GamesApi {
 
         List<Game> apiGames = domainGames.stream()
                 .map(gameMapper::toApiGame)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.ok(apiGames);
     }

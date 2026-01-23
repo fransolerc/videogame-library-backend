@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 public class PlatformController implements PlatformsApi {
@@ -26,7 +25,7 @@ public class PlatformController implements PlatformsApi {
         List<com.proyecto.domain.model.Platform> domainPlatforms = listPlatformsUseCase.listPlatforms();
         List<Platform> apiPlatforms = domainPlatforms.stream()
                 .map(platformMapper::toApiPlatform)
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(apiPlatforms);
     }
 }

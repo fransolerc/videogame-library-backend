@@ -57,13 +57,13 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(authToken);
             return true;
-        } catch (MalformedJwtException ex) {
+        } catch (MalformedJwtException _) {
             logger.error("Invalid JWT token");
-        } catch (ExpiredJwtException ex) {
+        } catch (ExpiredJwtException _) {
             logger.error("Expired JWT token");
-        } catch (UnsupportedJwtException ex) {
+        } catch (UnsupportedJwtException _) {
             logger.error("Unsupported JWT token");
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException _) {
             logger.error("JWT claims string is empty");
         }
         return false;

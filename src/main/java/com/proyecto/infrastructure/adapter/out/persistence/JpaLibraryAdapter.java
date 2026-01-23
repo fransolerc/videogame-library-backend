@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 public class JpaLibraryAdapter implements LibraryRepositoryPort {
@@ -42,7 +41,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
     public List<UserGame> findByUserId(String userId) {
         return userGameRepository.findByUser_Id(userId).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity) {
