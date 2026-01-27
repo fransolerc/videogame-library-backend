@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "user_games")
+@Table(name = "user_games", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "game_id"})
+})
 public class UserGameEntity {
 
     @Id

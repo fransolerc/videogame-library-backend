@@ -31,7 +31,7 @@ public class LibraryService implements LibraryUseCase {
     }
 
     @Override
-    public UserGame addGameToLibrary(UUID userId, Long gameId, GameStatus status) {
+    public UserGame upsertGameInLibrary(UUID userId, Long gameId, GameStatus status) {
         checkAuthorization(userId);
         String userIdString = userId.toString();
 
@@ -52,8 +52,7 @@ public class LibraryService implements LibraryUseCase {
     @Override
     public List<UserGame> listUserLibrary(UUID userId) {
         checkAuthorization(userId);
-        String userIdString = userId.toString();
-        return libraryRepositoryPort.findByUserId(userIdString);
+        return libraryRepositoryPort.findByUserId(userId.toString());
     }
 
     @Override
@@ -65,12 +64,17 @@ public class LibraryService implements LibraryUseCase {
     private void checkAuthorization(UUID requestedUserId) {
         String authenticatedUserEmail = getAuthenticatedUserEmail();
 
-        com.proyecto.domain.model.User authenticatedUser = userRepositoryPort.findByEmail(authenticatedUserEmail)
-                .orElseThrow(() -> new UnauthorizedLibraryAccessException("Authenticated user not found in database."));
-
-        if (!authenticatedUser.id().equals(requestedUserId.toString())) {
-            throw new UnauthorizedLibraryAccessException("User " + authenticatedUser.id() + " is not authorized to access library of user " + requestedUserId);
-        }
+        userRepositoryPort.findByEmail(authenticatedUserEmail)
+                .ifPresentOrElse(
+                        authenticatedUser -> {
+                            if (!authenticatedUser.id().equals(requestedUserId.toString())) {
+                                throw new UnauthorizedLibraryAccessException("User " + authenticatedUser.id() + " is not authorized to access library of user " + requestedUserId);
+                            }
+                        },
+                        () -> {
+                            throw new UnauthorizedLibraryAccessException("Authenticated user not found in database.");
+                        }
+                );
     }
 
     private static String getAuthenticatedUserEmail() {

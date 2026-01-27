@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface LibraryUseCase {
 
-    UserGame addGameToLibrary(UUID userId, Long gameId, GameStatus status);
+    UserGame upsertGameInLibrary(UUID userId, Long gameId, GameStatus status);
 
     List<UserGame> listUserLibrary(UUID userId);
 
