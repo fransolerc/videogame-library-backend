@@ -20,7 +20,7 @@ tags:
   - name: Library
     description: Operaciones relacionadas con la biblioteca de juegos de un usuario
 
-security: # Seguridad global para todos los endpoints (excepto los que tienen 'permitAll')
+security:
   - bearerAuth: []
 
 paths:
@@ -206,42 +206,8 @@ paths:
                   $ref: '#/components/schemas/UserGameDTO'
         '404':
           description: Usuario no encontrado
-    post:
-      tags:
-        - Library
-      summary: Añadir un juego a la biblioteca de un usuario o actualizar su estado
-      description: >
-        Añade un nuevo juego a la biblioteca de un usuario o, si el juego ya existe,
-        actualiza su estado (ej. de 'WANT_TO_PLAY' a 'PLAYING').
-      operationId: addGameToLibrary
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          description: ID del usuario
-          schema:
-            type: string
-            format: uuid
-            maxLength: 36
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddGameToLibraryRequestDTO'
-      responses:
-        '200':
-          description: Juego añadido/actualizado en la biblioteca
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserGameDTO'
-        '400':
-          description: Solicitud inválida
-        '404':
-          description: Usuario o juego no encontrado
 
-  /users/{userId}/games/{gameId}: # Nuevo endpoint para obtener el estado de un juego específico
+  /users/{userId}/games/{gameId}:
     get:
       tags:
         - Library
@@ -276,6 +242,48 @@ paths:
                 $ref: '#/components/schemas/UserGameDTO'
         '404':
           description: Juego no encontrado en la biblioteca del usuario
+    put:
+      tags:
+        - Library
+      summary: Añadir o actualizar el estado de un juego en la biblioteca
+      description: >
+        Añade un juego a la biblioteca de un usuario o, si ya existe, actualiza su estado.
+        Esta operación es idempotente.
+      operationId: upsertGameInLibrary
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+            maxLength: 36
+        - name: gameId
+          in: path
+          required: true
+          description: ID del juego
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGameStatusRequestDTO'
+      responses:
+        '200':
+          description: Juego añadido/actualizado en la biblioteca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserGameDTO'
+        '400':
+          description: Solicitud inválida
+        '404':
+          description: Usuario o juego no encontrado
 
 components:
   securitySchemes:
@@ -392,16 +400,11 @@ components:
         - PLAYING
         - COMPLETED
 
-    AddGameToLibraryRequestDTO:
+    UpdateGameStatusRequestDTO: # Nuevo esquema para el cuerpo del PUT
       type: object
       required:
-        - gameId
         - status
       properties:
-        gameId:
-          type: integer
-          format: int64
-          description: ID del juego a añadir (ID de IGDB).
         status:
           $ref: '#/components/schemas/GameStatusDTO'
 
