@@ -1,6 +1,7 @@
 package com.proyecto.infrastructure.adapter.in.web.error;
 
 import com.proyecto.domain.exception.EmailAlreadyExistsException;
+import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -23,5 +24,17 @@ public class GlobalExceptionHandler {
                 "path", request.getDescription(false).substring(4)
         );
         return new ResponseEntity<>(body, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(UnauthorizedLibraryAccessException.class)
+    public ResponseEntity<Object> handleUnauthorizedLibraryAccessException(UnauthorizedLibraryAccessException ex, WebRequest request) {
+        Map<String, Object> body = Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", HttpStatus.FORBIDDEN.value(),
+                "error", "Forbidden",
+                "message", ex.getMessage(),
+                "path", request.getDescription(false).substring(4)
+        );
+        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
     }
 }
