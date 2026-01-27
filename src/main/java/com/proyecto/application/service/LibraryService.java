@@ -3,8 +3,13 @@ package com.proyecto.application.service;
 import com.proyecto.application.port.in.LibraryUseCase;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.application.port.out.LibraryRepositoryPort;
+import com.proyecto.application.port.out.UserRepositoryPort;
+import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.UserGame;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,14 +22,17 @@ public class LibraryService implements LibraryUseCase {
 
     private final LibraryRepositoryPort libraryRepositoryPort;
     private final GameProviderPort gameProviderPort;
+    private final UserRepositoryPort userRepositoryPort;
 
-    public LibraryService(LibraryRepositoryPort libraryRepositoryPort, GameProviderPort gameProviderPort) {
+    public LibraryService(LibraryRepositoryPort libraryRepositoryPort, GameProviderPort gameProviderPort, UserRepositoryPort userRepositoryPort) {
         this.libraryRepositoryPort = libraryRepositoryPort;
         this.gameProviderPort = gameProviderPort;
+        this.userRepositoryPort = userRepositoryPort;
     }
 
     @Override
     public UserGame addGameToLibrary(UUID userId, Long gameId, GameStatus status) {
+        checkAuthorization(userId);
         String userIdString = userId.toString();
 
         gameProviderPort.findByExternalId(gameId)
@@ -43,12 +51,43 @@ public class LibraryService implements LibraryUseCase {
 
     @Override
     public List<UserGame> listUserLibrary(UUID userId) {
+        checkAuthorization(userId);
         String userIdString = userId.toString();
         return libraryRepositoryPort.findByUserId(userIdString);
     }
 
     @Override
     public Optional<UserGame> getUserGameStatus(UUID userId, Long gameId) {
+        checkAuthorization(userId);
         return libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId);
+    }
+
+    private void checkAuthorization(UUID requestedUserId) {
+        String authenticatedUserEmail = getAuthenticatedUserEmail();
+
+        com.proyecto.domain.model.User authenticatedUser = userRepositoryPort.findByEmail(authenticatedUserEmail)
+                .orElseThrow(() -> new UnauthorizedLibraryAccessException("Authenticated user not found in database."));
+
+        if (!authenticatedUser.id().equals(requestedUserId.toString())) {
+            throw new UnauthorizedLibraryAccessException("User " + authenticatedUser.id() + " is not authorized to access library of user " + requestedUserId);
+        }
+    }
+
+    private static String getAuthenticatedUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new UnauthorizedLibraryAccessException("User not authenticated.");
+        }
+
+        Object principal = authentication.getPrincipal();
+        String authenticatedUserEmail;
+
+        if (principal instanceof UserDetails userDetails) {
+            authenticatedUserEmail = userDetails.getUsername();
+        } else {
+            assert principal != null;
+            authenticatedUserEmail = principal.toString();
+        }
+        return authenticatedUserEmail;
     }
 }

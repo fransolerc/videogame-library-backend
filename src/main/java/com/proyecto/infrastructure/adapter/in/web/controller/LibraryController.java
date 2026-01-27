@@ -52,8 +52,8 @@ public class LibraryController implements LibraryApi {
 
     @Override
     public ResponseEntity<UserGameDTO> getUserGameStatus(
-            @NotNull @PathVariable("userId") UUID userId,
-            @NotNull @PathVariable("gameId") Long gameId
+            @PathVariable("userId") UUID userId,
+            @PathVariable("gameId") Long gameId
     ) {
         return libraryUseCase.getUserGameStatus(userId, gameId)
                 .map(userGameMapper::toApiUserGame)
