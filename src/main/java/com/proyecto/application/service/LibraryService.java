@@ -41,7 +41,7 @@ public class LibraryService implements LibraryUseCase {
         return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
                 .map(existingEntry -> {
                     UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt());
-                    return libraryRepositoryPort.save(updatedEntry);
+                    return libraryRepositoryPort.update(updatedEntry); // Usar update en lugar de save
                 })
                 .orElseGet(() -> {
                     UserGame newEntry = new UserGame(userIdString, gameId, status, LocalDateTime.now());

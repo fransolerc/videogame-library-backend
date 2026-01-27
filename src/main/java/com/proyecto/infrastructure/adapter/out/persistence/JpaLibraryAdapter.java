@@ -25,7 +25,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
     @Override
     public UserGame save(UserGame userGame) {
         UserEntity userEntity = userRepository.findById(userGame.userId())
-                .orElseThrow(() -> new RuntimeException("User not found")); // O una excepción más específica
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         UserGameEntity entity = toEntity(userGame, userEntity);
         UserGameEntity savedEntity = userGameRepository.save(entity);
@@ -42,6 +42,16 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
         return userGameRepository.findByUser_Id(userId).stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+    @Override
+    public UserGame update(UserGame userGame) {
+        UserGameEntity entity = userGameRepository.findByUser_IdAndGameId(userGame.userId(), userGame.gameId())
+                .orElseThrow(() -> new RuntimeException("UserGame not found"));
+
+        entity.setStatus(userGame.status());
+        UserGameEntity updatedEntity = userGameRepository.save(entity);
+        return toDomain(updatedEntity);
     }
 
     private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity) {
