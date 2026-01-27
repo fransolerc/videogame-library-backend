@@ -6,6 +6,7 @@ import com.proyecto.videogames.generated.api.LibraryApi;
 import com.proyecto.videogames.generated.model.UpdateGameStatusRequestDTO;
 import com.proyecto.videogames.generated.model.UserGameDTO;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +28,7 @@ public class LibraryController implements LibraryApi {
     }
 
     @Override
-    public ResponseEntity<List<UserGameDTO>> listUserLibrary(@NotNull @PathVariable("userId") UUID userId) {
+    public ResponseEntity<List<UserGameDTO>> listUserLibrary(@PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userGameMapper.toApiUserGameList(libraryUseCase.listUserLibrary(userId)));
     }
 
@@ -44,8 +45,8 @@ public class LibraryController implements LibraryApi {
 
     @Override
     public ResponseEntity<UserGameDTO> upsertGameInLibrary(
-            @PathVariable("userId") UUID userId,
-            @PathVariable("gameId") Long gameId,
+            @NotNull @PathVariable("userId") UUID userId,
+            @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId,
             @Valid @RequestBody UpdateGameStatusRequestDTO updateGameStatusRequestDTO
     ) {
         var domainUserGame = libraryUseCase.upsertGameInLibrary(

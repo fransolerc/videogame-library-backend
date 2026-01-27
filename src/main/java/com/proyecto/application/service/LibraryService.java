@@ -62,7 +62,12 @@ public class LibraryService implements LibraryUseCase {
     }
 
     private void checkAuthorization(UUID requestedUserId) {
-        String authenticatedUserEmail = getAuthenticatedUserEmail();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new UnauthorizedLibraryAccessException("User not authenticated.");
+        }
+
+        String authenticatedUserEmail = getAuthenticatedUserEmail(authentication);
 
         userRepositoryPort.findByEmail(authenticatedUserEmail)
                 .ifPresentOrElse(
@@ -77,21 +82,14 @@ public class LibraryService implements LibraryUseCase {
                 );
     }
 
-    private static String getAuthenticatedUserEmail() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new UnauthorizedLibraryAccessException("User not authenticated.");
-        }
-
+    private String getAuthenticatedUserEmail(Authentication authentication) {
         Object principal = authentication.getPrincipal();
-        String authenticatedUserEmail;
-
-        if (principal instanceof UserDetails userDetails) {
-            authenticatedUserEmail = userDetails.getUsername();
-        } else {
-            assert principal != null;
-            authenticatedUserEmail = principal.toString();
+        if (principal == null) {
+            throw new UnauthorizedLibraryAccessException("Authentication principal is null.");
         }
-        return authenticatedUserEmail;
+        if (principal instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
+        }
+        return principal.toString();
     }
 }
