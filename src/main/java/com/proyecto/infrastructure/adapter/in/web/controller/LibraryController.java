@@ -2,8 +2,7 @@ package com.proyecto.infrastructure.adapter.in.web.controller;
 
 import com.proyecto.domain.model.UserGame;
 import com.proyecto.infrastructure.adapter.in.web.mapper.UserGameMapper;
-import com.proyecto.application.port.in.AddGameToLibraryUseCase;
-import com.proyecto.application.port.in.ListUserLibraryUseCase;
+import com.proyecto.application.port.in.LibraryUseCase;
 import com.proyecto.videogames.generated.api.LibraryApi;
 import com.proyecto.videogames.generated.model.AddGameToLibraryRequestDTO;
 import com.proyecto.videogames.generated.model.UserGameDTO;
@@ -20,13 +19,14 @@ import java.util.UUID;
 @RestController
 public class LibraryController implements LibraryApi {
 
-    private final AddGameToLibraryUseCase addGameToLibraryUseCase;
-    private final ListUserLibraryUseCase listUserLibraryUseCase;
+    private final LibraryUseCase libraryUseCase;
     private final UserGameMapper userGameMapper;
 
-    public LibraryController(AddGameToLibraryUseCase addGameToLibraryUseCase, ListUserLibraryUseCase listUserLibraryUseCase, UserGameMapper userGameMapper) {
-        this.addGameToLibraryUseCase = addGameToLibraryUseCase;
-        this.listUserLibraryUseCase = listUserLibraryUseCase;
+    public LibraryController(
+            LibraryUseCase libraryUseCase,
+            UserGameMapper userGameMapper
+    ) {
+        this.libraryUseCase = libraryUseCase;
         this.userGameMapper = userGameMapper;
     }
 
@@ -35,7 +35,7 @@ public class LibraryController implements LibraryApi {
             @NotNull @PathVariable("userId") UUID userId,
             @Valid @RequestBody AddGameToLibraryRequestDTO addGameToLibraryRequest
     ) {
-        UserGame domainUserGame = addGameToLibraryUseCase.addGameToLibrary(
+        UserGame domainUserGame = libraryUseCase.addGameToLibrary(
                 userId,
                 addGameToLibraryRequest.getGameId(),
                 userGameMapper.toDomainGameStatus(addGameToLibraryRequest.getStatus())
@@ -46,7 +46,18 @@ public class LibraryController implements LibraryApi {
 
     @Override
     public ResponseEntity<List<UserGameDTO>> listUserLibrary(@NotNull @PathVariable("userId") UUID userId) {
-        List<UserGame> domainUserGames = listUserLibraryUseCase.listUserLibrary(userId);
+        List<UserGame> domainUserGames = libraryUseCase.listUserLibrary(userId);
         return ResponseEntity.ok(userGameMapper.toApiUserGameList(domainUserGames));
+    }
+
+    @Override
+    public ResponseEntity<UserGameDTO> getUserGameStatus(
+            @NotNull @PathVariable("userId") UUID userId,
+            @NotNull @PathVariable("gameId") Long gameId
+    ) {
+        return libraryUseCase.getUserGameStatus(userId, gameId)
+                .map(userGameMapper::toApiUserGame)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
