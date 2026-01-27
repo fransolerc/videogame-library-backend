@@ -354,7 +354,6 @@ components:
         - WANT_TO_PLAY
         - PLAYING
         - COMPLETED
-        - DROPPED
 
     AddGameToLibraryRequest:
       type: object

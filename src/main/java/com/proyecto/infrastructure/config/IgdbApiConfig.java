@@ -25,12 +25,9 @@ public class IgdbApiConfig {
         return new RestTemplate();
     }
 
-    // Getters for the properties so other beans can access them
     public String getApiBaseUrl() {
         return apiBaseUrl;
     }
-
-
 
     public String getAuthUrl() {
         return authUrl;
