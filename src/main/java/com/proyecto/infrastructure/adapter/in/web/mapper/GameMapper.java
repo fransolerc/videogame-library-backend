@@ -1,6 +1,7 @@
 package com.proyecto.infrastructure.adapter.in.web.mapper;
 
-import com.proyecto.videogames.generated.model.Game;
+import com.proyecto.domain.model.Game;
+import com.proyecto.videogames.generated.model.GameDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import java.math.BigDecimal;
@@ -22,7 +23,9 @@ public interface GameMapper {
     @Mapping(target = "coverImageUrl", source = "coverImageUrl")
     @Mapping(target = "videos", source = "videos")
     @Mapping(target = "screenshots", source = "screenshots")
-    Game toApiGame(com.proyecto.domain.model.Game domainGame);
+    GameDTO toApiGame(Game domainGame);
+
+    List<GameDTO> toApiGameList(List<Game> domainGames);
 
     default URI mapStringToUri(String url) {
         return url != null ? URI.create(url) : null;

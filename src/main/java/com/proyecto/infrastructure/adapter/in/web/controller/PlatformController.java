@@ -1,9 +1,10 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
 import com.proyecto.application.port.in.ListPlatformsUseCase;
+import com.proyecto.domain.model.Platform;
 import com.proyecto.infrastructure.adapter.in.web.mapper.PlatformMapper;
 import com.proyecto.videogames.generated.api.PlatformsApi;
-import com.proyecto.videogames.generated.model.Platform;
+import com.proyecto.videogames.generated.model.PlatformDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,11 +22,8 @@ public class PlatformController implements PlatformsApi {
     }
 
     @Override
-    public ResponseEntity<List<Platform>> listPlatforms() {
-        List<com.proyecto.domain.model.Platform> domainPlatforms = listPlatformsUseCase.listPlatforms();
-        List<Platform> apiPlatforms = domainPlatforms.stream()
-                .map(platformMapper::toApiPlatform)
-                .toList();
-        return ResponseEntity.ok(apiPlatforms);
+    public ResponseEntity<List<PlatformDTO>> listPlatforms() {
+        List<Platform> domainPlatforms = listPlatformsUseCase.listPlatforms();
+        return ResponseEntity.ok(platformMapper.toApiPlatformList(domainPlatforms));
     }
 }

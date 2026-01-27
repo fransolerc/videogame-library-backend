@@ -1,11 +1,12 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
+import com.proyecto.domain.model.UserGame;
 import com.proyecto.infrastructure.adapter.in.web.mapper.UserGameMapper;
 import com.proyecto.application.port.in.AddGameToLibraryUseCase;
 import com.proyecto.application.port.in.ListUserLibraryUseCase;
 import com.proyecto.videogames.generated.api.LibraryApi;
-import com.proyecto.videogames.generated.model.AddGameToLibraryRequest;
-import com.proyecto.videogames.generated.model.UserGame;
+import com.proyecto.videogames.generated.model.AddGameToLibraryRequestDTO;
+import com.proyecto.videogames.generated.model.UserGameDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
@@ -30,31 +31,22 @@ public class LibraryController implements LibraryApi {
     }
 
     @Override
-    public ResponseEntity<UserGame> addGameToLibrary(
+    public ResponseEntity<UserGameDTO> addGameToLibrary(
             @NotNull @PathVariable("userId") UUID userId,
-            @Valid @RequestBody AddGameToLibraryRequest addGameToLibraryRequest
+            @Valid @RequestBody AddGameToLibraryRequestDTO addGameToLibraryRequest
     ) {
-        // Usar String.format para construir la cadena del userId
-        String userIdString = String.format("%s", userId);
-
-        com.proyecto.domain.model.UserGame domainUserGame = addGameToLibraryUseCase.addGameToLibrary(
-                userIdString,
+        UserGame domainUserGame = addGameToLibraryUseCase.addGameToLibrary(
+                userId,
                 addGameToLibraryRequest.getGameId(),
                 userGameMapper.toDomainGameStatus(addGameToLibraryRequest.getStatus())
         );
 
-        UserGame apiUserGame = userGameMapper.toApiUserGame(domainUserGame);
-        return ResponseEntity.ok(apiUserGame);
+        return ResponseEntity.ok(userGameMapper.toApiUserGame(domainUserGame));
     }
 
     @Override
-    public ResponseEntity<List<UserGame>> listUserLibrary(@NotNull @PathVariable("userId") UUID userId) {
-        String userIdString = String.format("%s", userId);
-
-        List<com.proyecto.domain.model.UserGame> domainUserGames = listUserLibraryUseCase.listUserLibrary(userIdString);
-        List<UserGame> apiUserGames = domainUserGames.stream()
-                .map(userGameMapper::toApiUserGame)
-                .toList();
-        return ResponseEntity.ok(apiUserGames);
+    public ResponseEntity<List<UserGameDTO>> listUserLibrary(@NotNull @PathVariable("userId") UUID userId) {
+        List<UserGame> domainUserGames = listUserLibraryUseCase.listUserLibrary(userId);
+        return ResponseEntity.ok(userGameMapper.toApiUserGameList(domainUserGames));
     }
 }
