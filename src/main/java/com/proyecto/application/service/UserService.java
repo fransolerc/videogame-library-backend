@@ -4,6 +4,7 @@ import com.proyecto.application.port.in.LoginUserUseCase;
 import com.proyecto.application.port.in.RegisterUserUseCase;
 import com.proyecto.application.port.out.UserRepositoryPort;
 import com.proyecto.domain.exception.EmailAlreadyExistsException;
+import com.proyecto.domain.model.LoginResult;
 import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.security.jwt.JwtTokenProvider;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,7 +25,8 @@ public class UserService implements RegisterUserUseCase, LoginUserUseCase {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public UserService(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
+    public UserService(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder,
+                       AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
         this.userRepositoryPort = userRepositoryPort;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -38,23 +40,23 @@ public class UserService implements RegisterUserUseCase, LoginUserUseCase {
         });
 
         String encodedPassword = passwordEncoder.encode(password);
-
         User newUser = new User(UUID.randomUUID().toString(), username, email, encodedPassword);
-
         return userRepositoryPort.save(newUser);
     }
 
     @Override
-    public Optional<String> loginUser(String email, String password) {
+    public Optional<LoginResult> loginUser(String email, String password) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, password)
             );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
             String jwt = jwtTokenProvider.generateToken(authentication);
-            return Optional.of(jwt);
+
+            User user = userRepositoryPort.findByEmail(email).orElseThrow();
+
+            return Optional.of(new LoginResult(jwt, user));
         } catch (Exception _) {
             return Optional.empty();
         }
