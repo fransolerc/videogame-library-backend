@@ -1,7 +1,6 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
-import com.proyecto.application.port.in.LoginUserUseCase;
-import com.proyecto.application.port.in.RegisterUserUseCase;
+import com.proyecto.application.port.in.UserUseCase;
 import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.adapter.in.web.mapper.UserMapper;
 import com.proyecto.videogames.generated.api.UsersApi;
@@ -18,19 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class UserController implements UsersApi {
 
-    private final RegisterUserUseCase registerUserUseCase;
-    private final LoginUserUseCase loginUserUseCase;
+    private final UserUseCase userUseCase;
     private final UserMapper userMapper;
 
-    public UserController(RegisterUserUseCase registerUserUseCase, LoginUserUseCase loginUserUseCase, UserMapper userMapper) {
-        this.registerUserUseCase = registerUserUseCase;
-        this.loginUserUseCase = loginUserUseCase;
+    public UserController(UserUseCase userUseCase, UserMapper userMapper) {
+        this.userUseCase = userUseCase;
         this.userMapper = userMapper;
     }
 
     @Override
     public ResponseEntity<UserDTO> registerUser(@Valid @RequestBody UserRegistrationRequestDTO userRegistrationRequest) {
-        User domainUser = registerUserUseCase.registerUser(
+        User domainUser = userUseCase.registerUser(
                 userRegistrationRequest.getUsername(),
                 userRegistrationRequest.getEmail(),
                 userRegistrationRequest.getPassword()
@@ -42,7 +39,7 @@ public class UserController implements UsersApi {
 
     @Override
     public ResponseEntity<LoginResponseDTO> loginUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
-        return loginUserUseCase.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
+        return userUseCase.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
                 .map(userMapper::toLoginResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());

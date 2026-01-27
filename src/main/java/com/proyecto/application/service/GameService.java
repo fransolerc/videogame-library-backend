@@ -1,7 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.in.FilterGamesUseCase;
-import com.proyecto.application.port.in.SearchGamesUseCase;
+import com.proyecto.application.port.in.GameUseCase;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.domain.model.Game;
 import org.springframework.stereotype.Service;
@@ -10,11 +9,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class SearchGamesService implements SearchGamesUseCase, FilterGamesUseCase {
+public class GameService implements GameUseCase {
 
     private final GameProviderPort gameProviderPort;
 
-    public SearchGamesService(GameProviderPort gameProviderPort) {
+    public GameService(GameProviderPort gameProviderPort) {
         this.gameProviderPort = gameProviderPort;
     }
 

@@ -240,6 +240,43 @@ paths:
           description: Solicitud inválida
         '404':
           description: Usuario o juego no encontrado
+
+  /users/{userId}/games/{gameId}: # Nuevo endpoint para obtener el estado de un juego específico
+    get:
+      tags:
+        - Library
+      summary: Obtener el estado de un juego específico en la biblioteca del usuario
+      description: >
+        Devuelve el estado de un juego específico en la biblioteca del usuario.
+        Si el juego no está en la biblioteca, devuelve 404.
+      operationId: getUserGameStatus
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+            maxLength: 36
+        - name: gameId
+          in: path
+          required: true
+          description: ID del juego
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Estado del juego encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserGameDTO'
+        '404':
+          description: Juego no encontrado en la biblioteca del usuario
+
 components:
   securitySchemes:
     bearerAuth:

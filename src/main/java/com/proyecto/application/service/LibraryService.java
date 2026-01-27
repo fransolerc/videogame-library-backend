@@ -1,7 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.in.AddGameToLibraryUseCase;
-import com.proyecto.application.port.in.ListUserLibraryUseCase;
+import com.proyecto.application.port.in.LibraryUseCase;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.application.port.out.LibraryRepositoryPort;
 import com.proyecto.domain.model.GameStatus;
@@ -10,10 +9,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class LibraryService implements AddGameToLibraryUseCase, ListUserLibraryUseCase {
+public class LibraryService implements LibraryUseCase {
 
     private final LibraryRepositoryPort libraryRepositoryPort;
     private final GameProviderPort gameProviderPort;
@@ -45,5 +45,10 @@ public class LibraryService implements AddGameToLibraryUseCase, ListUserLibraryU
     public List<UserGame> listUserLibrary(UUID userId) {
         String userIdString = userId.toString();
         return libraryRepositoryPort.findByUserId(userIdString);
+    }
+
+    @Override
+    public Optional<UserGame> getUserGameStatus(UUID userId, Long gameId) {
+        return libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId);
     }
 }
