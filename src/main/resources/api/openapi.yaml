@@ -404,6 +404,10 @@ components:
         token:
           type: string
           description: Token JWT para autenticación.
+        userId:
+          type: string
+          format: uuid
+          description: ID del usuario autenticado.
 
     GameFilterRequest: # Nuevo esquema para la petición de filtrado
       type: object

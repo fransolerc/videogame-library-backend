@@ -1,5 +1,6 @@
 package com.proyecto.application.port.in;
 
+import com.proyecto.domain.model.LoginResult;
 import java.util.Optional;
 
 /**
@@ -8,11 +9,11 @@ import java.util.Optional;
 public interface LoginUserUseCase {
 
     /**
-     * Intenta autenticar a un usuario con sus credenciales y devuelve un token JWT.
+     * Intenta autenticar a un usuario con sus credenciales y devuelve un resultado de login con el token y el usuario.
      *
      * @param email La dirección de correo electrónico del usuario.
      * @param password La contraseña del usuario.
-     * @return Un Optional que contiene el token JWT si la autenticación es exitosa, o vacío si falla.
+     * @return Un Optional que contiene el LoginResult si la autenticación es exitosa, o vacío si falla.
      */
-    Optional<String> loginUser(String email, String password);
+    Optional<LoginResult> loginUser(String email, String password);
 }

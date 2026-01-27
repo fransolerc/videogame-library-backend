@@ -1,8 +1,8 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
-import com.proyecto.infrastructure.adapter.in.web.mapper.UserMapper;
 import com.proyecto.application.port.in.LoginUserUseCase;
 import com.proyecto.application.port.in.RegisterUserUseCase;
+import com.proyecto.infrastructure.adapter.in.web.mapper.UserMapper;
 import com.proyecto.videogames.generated.api.UsersApi;
 import com.proyecto.videogames.generated.model.LoginRequest;
 import com.proyecto.videogames.generated.model.LoginResponse;
@@ -42,11 +42,8 @@ public class UserController implements UsersApi {
     @Override
     public ResponseEntity<LoginResponse> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
         return loginUserUseCase.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
-                .map(token -> {
-                    LoginResponse loginResponse = new LoginResponse();
-                    loginResponse.setToken(token);
-                    return ResponseEntity.ok(loginResponse);
-                })
+                .map(userMapper::toLoginResponse)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 }
