@@ -1,11 +1,12 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
 import com.proyecto.application.port.in.FilterGamesUseCase;
+import com.proyecto.domain.model.Game;
 import com.proyecto.infrastructure.adapter.in.web.mapper.GameMapper;
 import com.proyecto.application.port.in.SearchGamesUseCase;
 import com.proyecto.videogames.generated.api.GamesApi;
-import com.proyecto.videogames.generated.model.Game;
-import com.proyecto.videogames.generated.model.GameFilterRequest;
+import com.proyecto.videogames.generated.model.GameDTO;
+import com.proyecto.videogames.generated.model.GameFilterRequestDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,15 +28,13 @@ public class GameController implements GamesApi {
     }
 
     @Override
-    public ResponseEntity<List<Game>> searchGamesByName(String name) {
-        List<Game> games = searchGamesUseCase.searchGamesByName(name).stream()
-                .map(gameMapper::toApiGame)
-                .toList();
-        return ResponseEntity.ok(games);
+    public ResponseEntity<List<GameDTO>> searchGamesByName(String name) {
+        List<Game> domainGames = searchGamesUseCase.searchGamesByName(name);
+        return ResponseEntity.ok(gameMapper.toApiGameList(domainGames));
     }
 
     @Override
-    public ResponseEntity<Game> getGameById(Long id) {
+    public ResponseEntity<GameDTO> getGameById(Long id) {
         return searchGamesUseCase.getGameById(id)
                 .map(gameMapper::toApiGame)
                 .map(ResponseEntity::ok)
@@ -43,18 +42,13 @@ public class GameController implements GamesApi {
     }
 
     @Override
-    public ResponseEntity<List<Game>> filterGames(@Valid @RequestBody GameFilterRequest gameFilterRequest) {
-        List<com.proyecto.domain.model.Game> domainGames = filterGamesUseCase.filterGames(
+    public ResponseEntity<List<GameDTO>> filterGames(@Valid @RequestBody GameFilterRequestDTO gameFilterRequest) {
+        List<Game> domainGames = filterGamesUseCase.filterGames(
                 gameFilterRequest.getFilter(),
                 gameFilterRequest.getSort(),
                 gameFilterRequest.getLimit(),
                 gameFilterRequest.getOffset()
         );
-
-        List<Game> apiGames = domainGames.stream()
-                .map(gameMapper::toApiGame)
-                .toList();
-
-        return ResponseEntity.ok(apiGames);
+        return ResponseEntity.ok(gameMapper.toApiGameList(domainGames));
     }
 }

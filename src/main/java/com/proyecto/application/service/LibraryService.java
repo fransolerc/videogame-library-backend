@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class LibraryService implements AddGameToLibraryUseCase, ListUserLibraryUseCase {
@@ -23,28 +24,26 @@ public class LibraryService implements AddGameToLibraryUseCase, ListUserLibraryU
     }
 
     @Override
-    public UserGame addGameToLibrary(String userId, Long gameId, GameStatus status) {
-        // 1. Validar que el juego existe
+    public UserGame addGameToLibrary(UUID userId, Long gameId, GameStatus status) {
+        String userIdString = userId.toString();
+
         gameProviderPort.findByExternalId(gameId)
                 .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
 
-        // 2. Comprobar si ya existe en la biblioteca
-        return libraryRepositoryPort.findByUserIdAndGameId(userId, gameId)
+        return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
                 .map(existingEntry -> {
-                    // Si existe, actualiza el estado
-                    UserGame updatedEntry = new UserGame(userId, gameId, status, existingEntry.addedAt());
+                    UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt());
                     return libraryRepositoryPort.save(updatedEntry);
                 })
                 .orElseGet(() -> {
-                    // Si no existe, crea una nueva entrada
-                    UserGame newEntry = new UserGame(userId, gameId, status, LocalDateTime.now());
+                    UserGame newEntry = new UserGame(userIdString, gameId, status, LocalDateTime.now());
                     return libraryRepositoryPort.save(newEntry);
                 });
     }
 
     @Override
-    public List<UserGame> listUserLibrary(String userId) {
-        return libraryRepositoryPort.findByUserId(userId);
+    public List<UserGame> listUserLibrary(UUID userId) {
+        String userIdString = userId.toString();
+        return libraryRepositoryPort.findByUserId(userIdString);
     }
-
 }
