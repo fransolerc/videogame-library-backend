@@ -13,4 +13,6 @@ public interface LibraryUseCase {
     List<UserGame> listUserLibrary(UUID userId);
 
     Optional<UserGame> getUserGameStatus(UUID userId, Long gameId);
+
+    void removeGameFromLibrary(UUID userId, Long gameId);
 }

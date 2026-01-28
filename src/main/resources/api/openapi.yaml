@@ -284,6 +284,35 @@ paths:
           description: Solicitud inválida
         '404':
           description: Usuario o juego no encontrado
+    delete:
+      tags:
+        - Library
+      summary: Eliminar un juego de la biblioteca de un usuario
+      description: >
+        Elimina un juego de la biblioteca de un usuario.
+      operationId: removeGameFromLibrary
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+            maxLength: 36
+        - name: gameId
+          in: path
+          required: true
+          description: ID del juego
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '204':
+          description: Juego eliminado exitosamente
+        '404':
+          description: Usuario o juego no encontrado en la biblioteca
 
 components:
   securitySchemes:
@@ -400,7 +429,7 @@ components:
         - PLAYING
         - COMPLETED
 
-    UpdateGameStatusRequestDTO: # Nuevo esquema para el cuerpo del PUT
+    UpdateGameStatusRequestDTO:
       type: object
       required:
         - status

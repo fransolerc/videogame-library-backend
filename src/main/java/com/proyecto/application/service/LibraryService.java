@@ -41,7 +41,7 @@ public class LibraryService implements LibraryUseCase {
         return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
                 .map(existingEntry -> {
                     UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt());
-                    return libraryRepositoryPort.update(updatedEntry); // Usar update en lugar de save
+                    return libraryRepositoryPort.update(updatedEntry);
                 })
                 .orElseGet(() -> {
                     UserGame newEntry = new UserGame(userIdString, gameId, status, LocalDateTime.now());
@@ -59,6 +59,12 @@ public class LibraryService implements LibraryUseCase {
     public Optional<UserGame> getUserGameStatus(UUID userId, Long gameId) {
         checkAuthorization(userId);
         return libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId);
+    }
+
+    @Override
+    public void removeGameFromLibrary(UUID userId, Long gameId) {
+        checkAuthorization(userId);
+        libraryRepositoryPort.deleteByUserIdAndGameId(userId.toString(), gameId);
     }
 
     private void checkAuthorization(UUID requestedUserId) {
