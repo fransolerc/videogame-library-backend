@@ -35,19 +35,19 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
 
     @Override
     public Optional<UserGame> findByUserIdAndGameId(String userId, Long gameId) {
-        return userGameRepository.findByUser_IdAndGameId(userId, gameId).map(this::toDomain);
+        return userGameRepository.findByUserIdAndGameId(userId, gameId).map(this::toDomain);
     }
 
     @Override
     public List<UserGame> findByUserId(String userId) {
-        return userGameRepository.findByUser_Id(userId).stream()
+        return userGameRepository.findByUserId(userId).stream()
                 .map(this::toDomain)
                 .toList();
     }
 
     @Override
     public UserGame update(UserGame userGame) {
-        UserGameEntity entity = userGameRepository.findByUser_IdAndGameId(userGame.userId(), userGame.gameId())
+        UserGameEntity entity = userGameRepository.findByUserIdAndGameId(userGame.userId(), userGame.gameId())
                 .orElseThrow(() -> new RuntimeException("UserGame not found"));
 
         entity.setStatus(userGame.status());
@@ -58,7 +58,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
     @Override
     @Transactional
     public void deleteByUserIdAndGameId(String userId, Long gameId) {
-        userGameRepository.deleteByUser_IdAndGameId(userId, gameId);
+        userGameRepository.deleteByUserIdAndGameId(userId, gameId);
     }
 
     private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity) {

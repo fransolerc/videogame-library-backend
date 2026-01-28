@@ -35,7 +35,7 @@ public class LibraryService implements LibraryUseCase {
         checkAuthorization(userId);
         String userIdString = userId.toString();
 
-        gameProviderPort.findByExternalId(gameId)
+        var _ = gameProviderPort.findByExternalId(gameId)
                 .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
 
         return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
