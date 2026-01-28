@@ -74,6 +74,11 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>3.0.0</version>
@@ -169,7 +174,7 @@
 								<dateLibrary>java8</dateLibrary>
 								<useTags>true</useTags>
 								<useJakarta>true</useJakarta>
-								<useSpringBoot3>true</useSpringBoot3> <!-- Activado de nuevo para asegurar compatibilidad Jakarta -->
+								<useSpringBoot3>true</useSpringBoot3>
 							</configOptions>
 						</configuration>
 					</execution>
