@@ -7,6 +7,7 @@ import com.proyecto.infrastructure.adapter.out.persistence.entity.UserGameEntity
 import com.proyecto.infrastructure.adapter.out.persistence.repository.SpringDataUserGameRepository;
 import com.proyecto.infrastructure.adapter.out.persistence.repository.SpringDataUserRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +53,12 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
         entity.setStatus(userGame.status());
         UserGameEntity updatedEntity = userGameRepository.save(entity);
         return toDomain(updatedEntity);
+    }
+
+    @Override
+    @Transactional
+    public void deleteByUserIdAndGameId(String userId, Long gameId) {
+        userGameRepository.deleteByUser_IdAndGameId(userId, gameId);
     }
 
     private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity) {

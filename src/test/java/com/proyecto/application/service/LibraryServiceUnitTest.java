@@ -25,6 +25,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -126,6 +128,36 @@ class LibraryServiceUnitTest {
         assertTrue(thrown.getMessage().contains("is not authorized to access library of user"));
         verify(gameProviderPort, never()).findByExternalId(anyLong());
         verify(libraryRepositoryPort, never()).findByUserIdAndGameId(anyString(), anyLong());
+    }
+
+    @Test
+    void removeGameFromLibrary_ShouldCallRepositoryDelete_WhenAuthorized() {
+        // Arrange
+        mockAuthentication();
+        mockUser(userId);
+
+        // Act
+        libraryService.removeGameFromLibrary(userId, gameId);
+
+        // Assert
+        verify(libraryRepositoryPort, times(1)).deleteByUserIdAndGameId(userId.toString(), gameId);
+    }
+
+    @Test
+    void removeGameFromLibrary_ShouldThrowUnauthorizedException_WhenUserIdsDoNotMatch() {
+        // Arrange
+        UUID differentUserId = UUID.randomUUID();
+        mockAuthentication();
+        mockUser(differentUserId);
+
+        // Act & Assert
+        UnauthorizedLibraryAccessException thrown = assertThrows(
+                UnauthorizedLibraryAccessException.class,
+                () -> libraryService.removeGameFromLibrary(userId, gameId)
+        );
+
+        assertTrue(thrown.getMessage().contains("is not authorized to access library of user"));
+        verify(libraryRepositoryPort, never()).deleteByUserIdAndGameId(anyString(), anyLong());
     }
 
     private void mockAuthentication() {

@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface SpringDataUserGameRepository extends JpaRepository<UserGameEntity, String> {
     Optional<UserGameEntity> findByUser_IdAndGameId(String userId, Long gameId);
     List<UserGameEntity> findByUser_Id(String userId);
+    void deleteByUser_IdAndGameId(String userId, Long gameId);
 }

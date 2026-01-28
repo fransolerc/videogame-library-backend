@@ -9,4 +9,5 @@ public interface LibraryRepositoryPort {
     Optional<UserGame> findByUserIdAndGameId(String userId, Long gameId);
     List<UserGame> findByUserId(String userId);
     UserGame update(UserGame userGame);
+    void deleteByUserIdAndGameId(String userId, Long gameId);
 }

@@ -56,4 +56,13 @@ public class LibraryController implements LibraryApi {
         );
         return ResponseEntity.ok(userGameMapper.toApiUserGame(domainUserGame));
     }
+
+    @Override
+    public ResponseEntity<Void> removeGameFromLibrary(
+            @NotNull @PathVariable("userId") UUID userId,
+            @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId
+    ) {
+        libraryUseCase.removeGameFromLibrary(userId, gameId);
+        return ResponseEntity.noContent().build();
+    }
 }
