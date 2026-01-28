@@ -421,6 +421,8 @@ components:
         password:
           type: string
           format: password
+          pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d\\W]{8,}$"
+          description: "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número."
 
     GameStatusDTO:
       type: string
