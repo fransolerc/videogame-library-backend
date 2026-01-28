@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -158,6 +159,98 @@ class LibraryServiceUnitTest {
 
         assertTrue(thrown.getMessage().contains("is not authorized to access library of user"));
         verify(libraryRepositoryPort, never()).deleteByUserIdAndGameId(anyString(), anyLong());
+    }
+
+    @Test
+    void listUserLibrary_ShouldReturnListOfGames_WhenAuthorized() {
+        // Arrange
+        mockAuthentication();
+        mockUser(userId);
+        when(libraryRepositoryPort.findByUserId(userId.toString())).thenReturn(List.of(mock(UserGame.class)));
+
+        // Act
+        List<UserGame> result = libraryService.listUserLibrary(userId);
+
+        // Assert
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        verify(libraryRepositoryPort).findByUserId(userId.toString());
+    }
+
+    @Test
+    void getUserGameStatus_ShouldReturnGameStatus_WhenAuthorized() {
+        // Arrange
+        mockAuthentication();
+        mockUser(userId);
+        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(mock(UserGame.class)));
+
+        // Act
+        Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
+
+        // Assert
+        assertTrue(result.isPresent());
+        verify(libraryRepositoryPort).findByUserIdAndGameId(userId.toString(), gameId);
+    }
+
+    @Test
+    void checkAuthorization_ShouldThrowException_WhenAuthenticationIsNull() {
+        // Arrange
+        when(securityContext.getAuthentication()).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+    }
+
+    @Test
+    void checkAuthorization_ShouldThrowException_WhenNotAuthenticated() {
+        // Arrange
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+    }
+
+    @Test
+    void getAuthenticatedUserEmail_ShouldThrowException_WhenPrincipalIsNull() {
+        // Arrange
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+    }
+
+    @Test
+    void checkAuthorization_ShouldThrowException_WhenUserNotFoundInDb() {
+        // Arrange
+        mockAuthentication();
+        when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        UnauthorizedLibraryAccessException thrown = assertThrows(
+                UnauthorizedLibraryAccessException.class,
+                () -> libraryService.listUserLibrary(userId)
+        );
+        assertEquals("Authenticated user not found in database.", thrown.getMessage());
+    }
+
+    @Test
+    void getAuthenticatedUserEmail_ShouldReturnString_WhenPrincipalIsNotUserDetails() {
+        // Arrange
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("user-principal-string");
+
+        User user = new User(userId.toString(), "testuser", "user-principal-string", "password");
+        when(userRepositoryPort.findByEmail("user-principal-string")).thenReturn(Optional.of(user));
+
+        // Act
+        libraryService.listUserLibrary(userId);
+
+        // Assert
+        verify(userRepositoryPort).findByEmail("user-principal-string");
     }
 
     private void mockAuthentication() {
