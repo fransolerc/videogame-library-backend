@@ -448,6 +448,9 @@ components:
           type: string
           format: uuid
           description: ID del usuario autenticado.
+        username:
+          type: string
+          description: Nombre de usuario del usuario autenticado.
 
     GameFilterRequestDTO:
       type: object
