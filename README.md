@@ -11,14 +11,15 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
 - **Java 25**
 - **Spring Boot 4**
 - **Maven**
-- **Spring Data JPA / Hibernate**: Para la persistencia de datos (si se implementa).
+- **Spring Data JPA / Hibernate**: Para la persistencia de datos.
 - **H2 Database**: Base de datos en memoria para desarrollo.
 - **OpenAPI 3 / Swagger UI**: Para la documentación y generación de la API.
 - **Arquitectura Hexagonal (Puertos y Adaptadores)**
-- **Spring Security**: Autenticación y autorización.
+- **Spring Security**: Autenticación y autorización (JWT).
 - **JSON Web Tokens (JWT)**: Para la autenticación sin estado.
 - **MapStruct**: Para el mapeo de objetos entre capas.
 - **JJWT**: Librería para la implementación de JWT.
+- **JUnit 5 / Mockito**: Para pruebas unitarias y de integración.
 
 ---
 
@@ -69,21 +70,22 @@ La documentación completa de la API está disponible en [http://localhost:8080/
 Todos los endpoints protegidos requieren un token JWT en la cabecera `Authorization: Bearer <token>`.
 
 1.  **Registrar Usuario**: `POST /users/register`
+    -   **Validación de Contraseña**: La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.
     ```json
     {
       "username": "testuser",
       "email": "test@example.com",
-      "password": "password123"
+      "password": "Password123"
     }
     ```
 2.  **Iniciar Sesión**: `POST /users/login`
     ```json
     {
       "email": "test@example.com",
-      "password": "password123"
+      "password": "Password123"
     }
     ```
-    La respuesta incluirá el token JWT. Cópialo y úsalo en el botón "Authorize" de Swagger UI.
+    La respuesta incluirá el token JWT, el `userId` y el `username`. Cópialo y úsalo en el botón "Authorize" de Swagger UI.
 
 ### Endpoints de Juegos
 
@@ -93,8 +95,6 @@ Todos los endpoints protegidos requieren un token JWT en la cabecera `Authorizat
     -   **Ejemplo**: `http://localhost:8080/games/1115` (para "The Legend of Zelda: Ocarina of Time")
 -   **`POST /games/filter`**: Realiza una búsqueda avanzada de videojuegos con filtros, ordenación y paginación.
 
-
-
 ### Endpoints de Plataformas
 
 -   **`GET /platforms`**: Lista todas las plataformas de videojuegos disponibles, incluyendo generación y tipo de plataforma (ej. "CONSOLE", "COMPUTER"), ordenadas alfabéticamente.
@@ -102,7 +102,9 @@ Todos los endpoints protegidos requieren un token JWT en la cabecera `Authorizat
 ### Endpoints de Biblioteca de Usuario
 
 -   **`GET /users/{userId}/games`**: Lista todos los juegos en la biblioteca de un usuario.
--   **`POST /users/{userId}/games`**: Añade un juego a la biblioteca de un usuario o actualiza su estado.
+-   **`GET /users/{userId}/games/{gameId}`**: Obtiene el estado de un juego específico en la biblioteca del usuario. Devuelve 404 si no se encuentra.
+-   **`PUT /users/{userId}/games/{gameId}`**: Añade un juego a la biblioteca de un usuario o actualiza su estado si ya existe. Esta operación es idempotente.
+-   **`DELETE /users/{userId}/games/{gameId}`**: Elimina un juego de la biblioteca de un usuario.
 
 ---
 
@@ -137,7 +139,7 @@ Si estás desarrollando un frontend (ej. con Angular) y quieres probarlo desde t
 El proyecto sigue los principios de la **Arquitectura Hexagonal** para separar el dominio de negocio de los detalles de infraestructura.
 
 -   **`domain`**: Contiene la lógica y las entidades del negocio (el "corazón" de la aplicación). No depende de nada.
--   **`application`**: Orquesta los flujos de trabajo. Contiene los *puertos* (interfaces) y los *casos de uso* (servicios).
+-   **`application`**: Orquesta los flujos de trabajo. Contiene los *puertos* (interfaces `UseCase` agrupadas por contexto) y los *casos de uso* (servicios que implementan esos `UseCase`).
 -   **`infrastructure`**: Contiene las implementaciones concretas de los puertos (los "adaptadores").
     -   **`adapter.in.web`**: Adaptadores de entrada (Driving Adapters), como los controladores REST y mappers de API.
     -   **`adapter.out.persistence`**: Adaptadores de salida (Driven Adapters) para bases de datos (JPA).
