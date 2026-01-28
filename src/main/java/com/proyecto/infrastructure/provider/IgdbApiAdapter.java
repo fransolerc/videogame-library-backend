@@ -15,8 +15,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -24,9 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Component
 public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
@@ -41,7 +36,6 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
 
     private final IgdbApiConfig apiConfig;
     private final RestTemplate restTemplate;
-    private final ExecutorService imageValidationExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     private String accessToken;
     private long tokenExpirationTime;
@@ -115,8 +109,9 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             IgdbGameResponse[] responseBody = response.getBody();
 
             if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
-                List<IgdbGameResponse> igdbGames = Arrays.asList(responseBody);
-                return processGamesAsync(igdbGames);
+                return Arrays.stream(responseBody)
+                        .map(this::mapToDomain)
+                        .toList();
             }
         } catch (Exception e) {
             logger.error("Error searching for games with name '{}' from IGDB", name, e);
@@ -153,8 +148,9 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             IgdbGameResponse[] responseBody = response.getBody();
 
             if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
-                List<IgdbGameResponse> igdbGames = Arrays.asList(responseBody);
-                return processGamesAsync(igdbGames);
+                return Arrays.stream(responseBody)
+                        .map(this::mapToDomain)
+                        .toList();
             }
         } catch (Exception e) {
             logger.error("Error filtering games with filter '{}' from IGDB", filter, e);
@@ -197,16 +193,6 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
         return headers;
     }
 
-    private List<Game> processGamesAsync(List<IgdbGameResponse> igdbGames) {
-        List<CompletableFuture<Game>> futures = igdbGames.stream()
-                .map(igdbGame -> CompletableFuture.supplyAsync(() -> mapToDomain(igdbGame), imageValidationExecutor))
-                .toList();
-
-        return futures.stream()
-                .map(CompletableFuture::join)
-                .toList();
-    }
-
     private void authenticate() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -237,7 +223,10 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     private Game mapToDomain(IgdbGameResponse igdbGame) {
         List<String> genreNames = igdbGame.genres() != null ? igdbGame.genres().stream().map(IgdbGenreResponse::name).toList() : Collections.emptyList();
         LocalDate releaseDate = igdbGame.releaseDate() != null ? Instant.ofEpochSecond(igdbGame.releaseDate()).atZone(ZoneId.systemDefault()).toLocalDate() : null;
-        String coverUrl = validateAndGetCoverUrl(igdbGame.cover());
+        
+        String coverUrl = (igdbGame.cover() != null && igdbGame.cover().imageId() != null)
+                ? "https://images.igdb.com/igdb/image/upload/t_cover_big/" + igdbGame.cover().imageId() + ".jpg"
+                : PLACEHOLDER_IMAGE_URL;
 
         List<String> videoUrls = igdbGame.videos() != null 
                 ? igdbGame.videos().stream()
@@ -270,33 +259,11 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     private Platform mapToDomain(IgdbPlatformResponse igdbPlatform) {
-        return new Platform(igdbPlatform.id(), igdbPlatform.name(), igdbPlatform.generation(), PlatformType.fromValue(igdbPlatform.platformType()));
-    }
-
-    private String validateAndGetCoverUrl(IgdbCoverResponse cover) {
-        if (cover == null || cover.imageId() == null) {
-            return PLACEHOLDER_IMAGE_URL;
-        }
-
-        String imageUrl = "https://images.igdb.com/igdb/image/upload/t_cover_big/" + cover.imageId() + ".jpg";
-
-        try {
-            URI uri = new URI(imageUrl);
-            HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-            connection.setRequestMethod("HEAD");
-            connection.setConnectTimeout(2000);
-            connection.setReadTimeout(2000);
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                logger.warn("Cover image not found (HTTP {}): {}. Using placeholder.", responseCode, imageUrl);
-                return PLACEHOLDER_IMAGE_URL;
-            }
-        } catch (Exception e) {
-            logger.error("Error validating cover image URL: {}. Using placeholder.", imageUrl, e);
-            return PLACEHOLDER_IMAGE_URL;
-        }
-
-        return imageUrl;
+        return new Platform(
+                igdbPlatform.id(),
+                igdbPlatform.name(),
+                igdbPlatform.generation(),
+                PlatformType.fromValue(igdbPlatform.platformType())
+        );
     }
 }
