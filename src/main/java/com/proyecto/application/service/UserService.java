@@ -55,7 +55,7 @@ public class UserService implements UserUseCase {
 
             User user = userRepositoryPort.findByEmail(email).orElseThrow();
 
-            return Optional.of(new LoginResult(jwt, user));
+            return Optional.of(new LoginResult(jwt, user, user.username()));
         } catch (Exception _) {
             return Optional.empty();
         }

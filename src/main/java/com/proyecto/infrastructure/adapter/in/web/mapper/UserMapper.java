@@ -17,5 +17,6 @@ public interface UserMapper {
 
     @Mapping(target = "token", source = "token")
     @Mapping(target = "userId", source = "user.id")
+    @Mapping(target = "username", source = "username")
     LoginResponseDTO toLoginResponse(LoginResult loginResult);
 }
