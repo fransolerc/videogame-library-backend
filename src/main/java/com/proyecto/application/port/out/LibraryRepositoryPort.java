@@ -1,6 +1,9 @@
 package com.proyecto.application.port.out;
 
 import com.proyecto.domain.model.UserGame;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -10,4 +13,5 @@ public interface LibraryRepositoryPort {
     List<UserGame> findByUserId(String userId);
     UserGame update(UserGame userGame);
     void deleteByUserIdAndGameId(String userId, Long gameId);
+    Page<UserGame> findByUserIdAndIsFavoriteTrue(String userId, Pageable pageable);
 }
