@@ -7,6 +7,8 @@ import com.proyecto.application.port.out.UserRepositoryPort;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.UserGame;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -40,11 +42,11 @@ public class LibraryService implements LibraryUseCase {
 
         return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
                 .map(existingEntry -> {
-                    UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt());
+                    UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt(), existingEntry.isFavorite());
                     return libraryRepositoryPort.update(updatedEntry);
                 })
                 .orElseGet(() -> {
-                    UserGame newEntry = new UserGame(userIdString, gameId, status, LocalDateTime.now());
+                    UserGame newEntry = new UserGame(userIdString, gameId, status, LocalDateTime.now(), false);
                     return libraryRepositoryPort.save(newEntry);
                 });
     }
@@ -65,6 +67,34 @@ public class LibraryService implements LibraryUseCase {
     public void removeGameFromLibrary(UUID userId, Long gameId) {
         checkAuthorization(userId);
         libraryRepositoryPort.deleteByUserIdAndGameId(userId.toString(), gameId);
+    }
+
+    @Override
+    public void addGameToFavorites(UUID userId, Long gameId) {
+        checkAuthorization(userId);
+        String userIdString = userId.toString();
+        UserGame userGame = libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
+                .orElseThrow(() -> new RuntimeException("Game not found in library"));
+        
+        UserGame updatedUserGame = new UserGame(userIdString, gameId, userGame.status(), userGame.addedAt(), true);
+        libraryRepositoryPort.update(updatedUserGame);
+    }
+
+    @Override
+    public void removeGameFromFavorites(UUID userId, Long gameId) {
+        checkAuthorization(userId);
+        String userIdString = userId.toString();
+        UserGame userGame = libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
+                .orElseThrow(() -> new RuntimeException("Game not found in library"));
+
+        UserGame updatedUserGame = new UserGame(userIdString, gameId, userGame.status(), userGame.addedAt(), false);
+        libraryRepositoryPort.update(updatedUserGame);
+    }
+
+    @Override
+    public Page<UserGame> listFavoriteGames(UUID userId, Pageable pageable) {
+        checkAuthorization(userId);
+        return libraryRepositoryPort.findByUserIdAndIsFavoriteTrue(userId.toString(), pageable);
     }
 
     private void checkAuthorization(UUID requestedUserId) {
