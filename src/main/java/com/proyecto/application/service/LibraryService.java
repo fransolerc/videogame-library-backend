@@ -7,8 +7,6 @@ import com.proyecto.application.port.out.UserRepositoryPort;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.UserGame;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -23,8 +21,6 @@ import java.util.UUID;
 
 @Service
 public class LibraryService implements LibraryUseCase {
-
-    private static final Logger logger = LoggerFactory.getLogger(LibraryService.class);
 
     private final LibraryRepositoryPort libraryRepositoryPort;
     private final GameProviderPort gameProviderPort;
@@ -48,21 +44,15 @@ public class LibraryService implements LibraryUseCase {
 
         if (existingEntryOpt.isPresent()) {
             UserGame existingEntry = existingEntryOpt.get();
-            
-            logger.info("CHECKING GARBAGE COLLECTION: New Status={}, Existing Favorite={}", status, existingEntry.isFavorite());
 
-            // Si el nuevo estado es NONE y el juego NO es favorito, borrar.
-            if (status == GameStatus.NONE && !existingEntry.isFavorite()) {
-                logger.info("GARBAGE COLLECTION TRIGGERED: Deleting game {} for user {}", gameId, userId);
+            if (status == GameStatus.NONE && Boolean.FALSE.equals(existingEntry.isFavorite())) {
                 libraryRepositoryPort.deleteByUserIdAndGameId(userIdString, gameId);
                 return Optional.empty();
             } else {
-                logger.info("UPDATING: Keeping game {} for user {}", gameId, userId);
                 UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt(), existingEntry.isFavorite());
                 return Optional.of(libraryRepositoryPort.update(updatedEntry));
             }
         } else {
-            // Si no existe y el estado es NONE, no crear nada.
             if (status == GameStatus.NONE) {
                 return Optional.empty();
             }
@@ -90,23 +80,21 @@ public class LibraryService implements LibraryUseCase {
     }
 
     @Override
-    public void addGameToFavorites(UUID userId, Long gameId) {
+    public UserGame addGameToFavorites(UUID userId, Long gameId) {
         checkAuthorization(userId);
         String userIdString = userId.toString();
 
-        libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
-                .ifPresentOrElse(
-                        existingEntry -> {
-                            UserGame updatedUserGame = new UserGame(userIdString, gameId, existingEntry.status(), existingEntry.addedAt(), true);
-                            libraryRepositoryPort.update(updatedUserGame);
-                        },
-                        () -> {
-                            var _ = gameProviderPort.findByExternalId(gameId)
-                                    .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
-                            UserGame newFavorite = new UserGame(userIdString, gameId, GameStatus.NONE, LocalDateTime.now(), true);
-                            libraryRepositoryPort.save(newFavorite);
-                        }
-                );
+        return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
+                .map(existingEntry -> {
+                    UserGame updatedUserGame = new UserGame(userIdString, gameId, existingEntry.status(), existingEntry.addedAt(), true);
+                    return libraryRepositoryPort.update(updatedUserGame);
+                })
+                .orElseGet(() -> {
+                    var _ = gameProviderPort.findByExternalId(gameId)
+                            .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
+                    UserGame newFavorite = new UserGame(userIdString, gameId, GameStatus.NONE, LocalDateTime.now(), true);
+                    return libraryRepositoryPort.save(newFavorite);
+                });
     }
 
     @Override
