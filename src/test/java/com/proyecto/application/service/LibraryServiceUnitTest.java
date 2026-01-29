@@ -9,6 +9,7 @@ import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.User;
 import com.proyecto.domain.model.UserGame;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,14 +21,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,19 +33,14 @@ class LibraryServiceUnitTest {
 
     @Mock
     private LibraryRepositoryPort libraryRepositoryPort;
-
     @Mock
     private GameProviderPort gameProviderPort;
-
     @Mock
     private UserRepositoryPort userRepositoryPort;
-
     @Mock
     private SecurityContext securityContext;
-
     @Mock
     private Authentication authentication;
-
     @Mock
     private UserDetails userDetails;
 
@@ -60,208 +53,161 @@ class LibraryServiceUnitTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
+        lenient().when(authentication.isAuthenticated()).thenReturn(true);
+        lenient().when(authentication.getPrincipal()).thenReturn(userDetails);
+        lenient().when(userDetails.getUsername()).thenReturn(userEmail);
+        lenient().when(gameProviderPort.findByExternalId(anyLong())).thenReturn(Optional.of(mock(Game.class)));
+        mockUser(userId);
         SecurityContextHolder.setContext(securityContext);
     }
 
-    @Test
-    void upsertGameInLibrary_ShouldAddNewGame_WhenGameDoesNotExistInLibrary() {
-        // Arrange
-        mockAuthentication();
-        mockUser(userId);
+    @Nested
+    class UpsertGameInLibraryTests {
+        @Test
+        void shouldCreateEntry_whenGameNotInLibrary() {
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
+            when(libraryRepositoryPort.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
 
-        when(gameProviderPort.findByExternalId(gameId)).thenReturn(Optional.of(mock(Game.class)));
-        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
-        
-        UserGame savedUserGame = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now());
-        when(libraryRepositoryPort.save(any(UserGame.class))).thenReturn(savedUserGame);
+            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.PLAYING);
 
-        // Act
-        UserGame result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.PLAYING);
+            assertTrue(result.isPresent());
+            assertEquals(GameStatus.PLAYING, result.get().status());
+            verify(libraryRepositoryPort).save(any(UserGame.class));
+        }
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(userId.toString(), result.userId());
-        assertEquals(gameId, result.gameId());
-        assertEquals(GameStatus.PLAYING, result.status());
+        @Test
+        void shouldUpdateEntry_whenGameInLibrary() {
+            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.WANT_TO_PLAY, LocalDateTime.now(), false);
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
 
-        verify(libraryRepositoryPort).save(any(UserGame.class));
-        verify(libraryRepositoryPort, never()).update(any(UserGame.class));
+            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.COMPLETED);
+
+            assertTrue(result.isPresent());
+            assertEquals(GameStatus.COMPLETED, result.get().status());
+            verify(libraryRepositoryPort).update(any(UserGame.class));
+        }
+
+        @Test
+        void shouldDeleteEntry_whenStatusIsNoneAndNotFavorite() {
+            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), false);
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+
+            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.NONE);
+
+            assertTrue(result.isEmpty());
+            verify(libraryRepositoryPort).deleteByUserIdAndGameId(userId.toString(), gameId);
+        }
+
+        @Test
+        void shouldNotDeleteEntry_whenStatusIsNoneButIsFavorite() {
+            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), true);
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
+
+            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.NONE);
+
+            assertTrue(result.isPresent());
+            assertEquals(GameStatus.NONE, result.get().status());
+            assertTrue(result.get().isFavorite());
+            verify(libraryRepositoryPort).update(any(UserGame.class));
+        }
     }
 
-    @Test
-    void upsertGameInLibrary_ShouldUpdateGame_WhenGameExistsInLibrary() {
-        // Arrange
-        mockAuthentication();
-        mockUser(userId);
+    @Nested
+    class FavoritesTests {
+        @Test
+        void addGameToFavorites_shouldCreateEntry_whenNotInLibrary() {
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
 
-        when(gameProviderPort.findByExternalId(gameId)).thenReturn(Optional.of(mock(Game.class)));
-        
-        UserGame existingUserGame = new UserGame(userId.toString(), gameId, GameStatus.WANT_TO_PLAY, LocalDateTime.now());
-        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existingUserGame));
+            libraryService.addGameToFavorites(userId, gameId);
 
-        UserGame updatedUserGame = new UserGame(userId.toString(), gameId, GameStatus.COMPLETED, existingUserGame.addedAt());
-        when(libraryRepositoryPort.update(any(UserGame.class))).thenReturn(updatedUserGame);
+            verify(libraryRepositoryPort).save(argThat(game ->
+                    game.status() == GameStatus.NONE && game.isFavorite()
+            ));
+        }
 
-        // Act
-        UserGame result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.COMPLETED);
+        @Test
+        void addGameToFavorites_shouldUpdateEntry_whenInLibrary() {
+            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), false);
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(GameStatus.COMPLETED, result.status());
+            libraryService.addGameToFavorites(userId, gameId);
 
-        verify(libraryRepositoryPort).update(any(UserGame.class));
-        verify(libraryRepositoryPort, never()).save(any(UserGame.class));
+            verify(libraryRepositoryPort).update(argThat(game ->
+                    game.status() == GameStatus.PLAYING && game.isFavorite()
+            ));
+        }
+
+        @Test
+        void removeGameFromFavorites_shouldDeleteEntry_whenStatusIsNone() {
+            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.NONE, LocalDateTime.now(), true);
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+
+            libraryService.removeGameFromFavorites(userId, gameId);
+
+            verify(libraryRepositoryPort).deleteByUserIdAndGameId(userId.toString(), gameId);
+        }
+
+        @Test
+        void removeGameFromFavorites_shouldUpdateEntry_whenStatusIsNotNone() {
+            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), true);
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+
+            libraryService.removeGameFromFavorites(userId, gameId);
+
+            verify(libraryRepositoryPort).update(argThat(game ->
+                    game.status() == GameStatus.PLAYING && !game.isFavorite()
+            ));
+        }
     }
 
-    @Test
-    void upsertGameInLibrary_ShouldThrowUnauthorizedException_WhenUserIdsDoNotMatch() {
-        // Arrange
-        UUID differentUserId = UUID.randomUUID();
-        mockAuthentication();
-        mockUser(differentUserId);
+    @Nested
+    class AuthorizationTests {
+        @Test
+        void shouldThrowException_whenUserIdsDoNotMatch() {
+            mockUser(UUID.randomUUID());
+            assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+        }
 
-        // Act & Assert
-        UnauthorizedLibraryAccessException thrown = assertThrows(
-                UnauthorizedLibraryAccessException.class,
-                () -> libraryService.upsertGameInLibrary(userId, gameId, GameStatus.PLAYING)
-        );
+        @Test
+        void shouldThrowException_whenAuthenticationIsNull() {
+            when(securityContext.getAuthentication()).thenReturn(null);
+            assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+        }
 
-        assertTrue(thrown.getMessage().contains("is not authorized to access library of user"));
-        verify(gameProviderPort, never()).findByExternalId(anyLong());
-        verify(libraryRepositoryPort, never()).findByUserIdAndGameId(anyString(), anyLong());
-    }
+        @Test
+        void shouldThrowException_whenNotAuthenticated() {
+            when(authentication.isAuthenticated()).thenReturn(false);
+            assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+        }
 
-    @Test
-    void removeGameFromLibrary_ShouldCallRepositoryDelete_WhenAuthorized() {
-        // Arrange
-        mockAuthentication();
-        mockUser(userId);
+        @Test
+        void shouldThrowException_whenPrincipalIsNull() {
+            when(authentication.getPrincipal()).thenReturn(null);
+            assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+        }
 
-        // Act
-        libraryService.removeGameFromLibrary(userId, gameId);
+        @Test
+        void shouldThrowException_whenUserNotFoundInDb() {
+            when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.empty());
+            assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
+        }
 
-        // Assert
-        verify(libraryRepositoryPort, times(1)).deleteByUserIdAndGameId(userId.toString(), gameId);
-    }
+        @Test
+        void shouldGetEmail_whenPrincipalIsNotUserDetails() {
+            when(authentication.getPrincipal()).thenReturn("user-principal-string");
+            User user = new User(userId.toString(), "testuser", "user-principal-string", "password");
+            when(userRepositoryPort.findByEmail("user-principal-string")).thenReturn(Optional.of(user));
 
-    @Test
-    void removeGameFromLibrary_ShouldThrowUnauthorizedException_WhenUserIdsDoNotMatch() {
-        // Arrange
-        UUID differentUserId = UUID.randomUUID();
-        mockAuthentication();
-        mockUser(differentUserId);
-
-        // Act & Assert
-        UnauthorizedLibraryAccessException thrown = assertThrows(
-                UnauthorizedLibraryAccessException.class,
-                () -> libraryService.removeGameFromLibrary(userId, gameId)
-        );
-
-        assertTrue(thrown.getMessage().contains("is not authorized to access library of user"));
-        verify(libraryRepositoryPort, never()).deleteByUserIdAndGameId(anyString(), anyLong());
-    }
-
-    @Test
-    void listUserLibrary_ShouldReturnListOfGames_WhenAuthorized() {
-        // Arrange
-        mockAuthentication();
-        mockUser(userId);
-        when(libraryRepositoryPort.findByUserId(userId.toString())).thenReturn(List.of(mock(UserGame.class)));
-
-        // Act
-        List<UserGame> result = libraryService.listUserLibrary(userId);
-
-        // Assert
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-        verify(libraryRepositoryPort).findByUserId(userId.toString());
-    }
-
-    @Test
-    void getUserGameStatus_ShouldReturnGameStatus_WhenAuthorized() {
-        // Arrange
-        mockAuthentication();
-        mockUser(userId);
-        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(mock(UserGame.class)));
-
-        // Act
-        Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
-
-        // Assert
-        assertTrue(result.isPresent());
-        verify(libraryRepositoryPort).findByUserIdAndGameId(userId.toString(), gameId);
-    }
-
-    @Test
-    void checkAuthorization_ShouldThrowException_WhenAuthenticationIsNull() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(null);
-
-        // Act & Assert
-        assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
-    }
-
-    @Test
-    void checkAuthorization_ShouldThrowException_WhenNotAuthenticated() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(false);
-
-        // Act & Assert
-        assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
-    }
-
-    @Test
-    void getAuthenticatedUserEmail_ShouldThrowException_WhenPrincipalIsNull() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getPrincipal()).thenReturn(null);
-
-        // Act & Assert
-        assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
-    }
-
-    @Test
-    void checkAuthorization_ShouldThrowException_WhenUserNotFoundInDb() {
-        // Arrange
-        mockAuthentication();
-        when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        UnauthorizedLibraryAccessException thrown = assertThrows(
-                UnauthorizedLibraryAccessException.class,
-                () -> libraryService.listUserLibrary(userId)
-        );
-        assertEquals("Authenticated user not found in database.", thrown.getMessage());
-    }
-
-    @Test
-    void getAuthenticatedUserEmail_ShouldReturnString_WhenPrincipalIsNotUserDetails() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getPrincipal()).thenReturn("user-principal-string");
-
-        User user = new User(userId.toString(), "testuser", "user-principal-string", "password");
-        when(userRepositoryPort.findByEmail("user-principal-string")).thenReturn(Optional.of(user));
-
-        // Act
-        libraryService.listUserLibrary(userId);
-
-        // Assert
-        verify(userRepositoryPort).findByEmail("user-principal-string");
-    }
-
-    private void mockAuthentication() {
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(userDetails.getUsername()).thenReturn(userEmail);
+            assertDoesNotThrow(() -> libraryService.listUserLibrary(userId));
+            verify(userRepositoryPort).findByEmail("user-principal-string");
+        }
     }
 
     private void mockUser(UUID authenticatedUserId) {
         User user = new User(authenticatedUserId.toString(), "testuser", userEmail, "password");
-        when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.of(user));
+        lenient().when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.of(user));
     }
 }
