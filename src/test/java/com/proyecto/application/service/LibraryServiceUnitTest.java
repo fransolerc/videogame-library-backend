@@ -15,12 +15,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,6 +67,49 @@ class LibraryServiceUnitTest {
     }
 
     @Nested
+    class GeneralLibraryTests {
+        @Test
+        void listUserLibrary_shouldReturnListOfGames() {
+            when(libraryRepositoryPort.findByUserId(userId.toString())).thenReturn(List.of(mock(UserGame.class)));
+            List<UserGame> result = libraryService.listUserLibrary(userId);
+            assertFalse(result.isEmpty());
+            verify(libraryRepositoryPort).findByUserId(userId.toString());
+        }
+
+        @Test
+        void getUserGameStatus_shouldReturnUserGame_whenFound() {
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(mock(UserGame.class)));
+            Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
+            assertTrue(result.isPresent());
+        }
+
+        @Test
+        void getUserGameStatus_shouldReturnEmpty_whenNotFound() {
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
+            Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void removeGameFromLibrary_shouldCallDelete() {
+            libraryService.removeGameFromLibrary(userId, gameId);
+            verify(libraryRepositoryPort).deleteByUserIdAndGameId(userId.toString(), gameId);
+        }
+
+        @Test
+        void listFavoriteGames_shouldReturnPageOfGames() {
+            PageRequest pageable = PageRequest.of(0, 20);
+            when(libraryRepositoryPort.findByUserIdAndIsFavoriteTrue(userId.toString(), pageable))
+                    .thenReturn(new PageImpl<>(List.of(mock(UserGame.class))));
+
+            Page<UserGame> result = libraryService.listFavoriteGames(userId, pageable);
+
+            assertFalse(result.isEmpty());
+            verify(libraryRepositoryPort).findByUserIdAndIsFavoriteTrue(userId.toString(), pageable);
+        }
+    }
+
+    @Nested
     class UpsertGameInLibraryTests {
         @Test
         void shouldCreateEntry_whenGameNotInLibrary() {
@@ -74,6 +121,16 @@ class LibraryServiceUnitTest {
             assertTrue(result.isPresent());
             assertEquals(GameStatus.PLAYING, result.get().status());
             verify(libraryRepositoryPort).save(any(UserGame.class));
+        }
+
+        @Test
+        void shouldNotCreateEntry_whenStatusIsNoneAndGameNotInLibrary() {
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
+
+            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.NONE);
+
+            assertTrue(result.isEmpty());
+            verify(libraryRepositoryPort, never()).save(any(UserGame.class));
         }
 
         @Test
