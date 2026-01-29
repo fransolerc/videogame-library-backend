@@ -35,10 +35,11 @@ public class UserGameEntity {
     @Column(nullable = false)
     private Boolean isFavorite = false;
 
-    public UserGameEntity(UserEntity user, Long gameId, GameStatus status) {
+    public UserGameEntity(UserEntity user, Long gameId, GameStatus status, Boolean isFavorite) {
         this.user = user;
         this.gameId = gameId;
         this.status = status;
+        this.isFavorite = isFavorite;
     }
 
     @PrePersist

@@ -517,6 +517,7 @@ components:
     GameStatusDTO:
       type: string
       enum:
+        - NONE
         - WANT_TO_PLAY
         - PLAYING
         - COMPLETED

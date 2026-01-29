@@ -30,7 +30,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
         UserEntity userEntity = userRepository.findById(userGame.userId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserGameEntity entity = toEntity(userGame, userEntity, userGame.isFavorite());
+        UserGameEntity entity = toEntity(userGame, userEntity);
         UserGameEntity savedEntity = userGameRepository.save(entity);
         return toDomain(savedEntity);
     }
@@ -70,10 +70,8 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
         return entityPage.map(this::toDomain);
     }
 
-    private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity, boolean isFavorite) {
-        UserGameEntity entity = new UserGameEntity(userEntity, userGame.gameId(), userGame.status());
-        entity.setIsFavorite(isFavorite);
-        return entity;
+    private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity) {
+        return new UserGameEntity(userEntity, userGame.gameId(), userGame.status(), userGame.isFavorite());
     }
 
     private UserGame toDomain(UserGameEntity entity) {
