@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public interface LibraryUseCase {
 
-    UserGame upsertGameInLibrary(UUID userId, Long gameId, GameStatus status);
+    Optional<UserGame> upsertGameInLibrary(UUID userId, Long gameId, GameStatus status);
 
     List<UserGame> listUserLibrary(UUID userId);
 

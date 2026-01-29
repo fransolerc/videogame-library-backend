@@ -7,6 +7,8 @@ import com.proyecto.application.port.out.UserRepositoryPort;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.UserGame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -22,6 +24,8 @@ import java.util.UUID;
 @Service
 public class LibraryService implements LibraryUseCase {
 
+    private static final Logger logger = LoggerFactory.getLogger(LibraryService.class);
+
     private final LibraryRepositoryPort libraryRepositoryPort;
     private final GameProviderPort gameProviderPort;
     private final UserRepositoryPort userRepositoryPort;
@@ -33,22 +37,38 @@ public class LibraryService implements LibraryUseCase {
     }
 
     @Override
-    public UserGame upsertGameInLibrary(UUID userId, Long gameId, GameStatus status) {
+    public Optional<UserGame> upsertGameInLibrary(UUID userId, Long gameId, GameStatus status) {
         checkAuthorization(userId);
         String userIdString = userId.toString();
 
         var _ = gameProviderPort.findByExternalId(gameId)
                 .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
 
-        return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
-                .map(existingEntry -> {
-                    UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt(), existingEntry.isFavorite());
-                    return libraryRepositoryPort.update(updatedEntry);
-                })
-                .orElseGet(() -> {
-                    UserGame newEntry = new UserGame(userIdString, gameId, status, LocalDateTime.now(), false);
-                    return libraryRepositoryPort.save(newEntry);
-                });
+        Optional<UserGame> existingEntryOpt = libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId);
+
+        if (existingEntryOpt.isPresent()) {
+            UserGame existingEntry = existingEntryOpt.get();
+            
+            logger.info("CHECKING GARBAGE COLLECTION: New Status={}, Existing Favorite={}", status, existingEntry.isFavorite());
+
+            // Si el nuevo estado es NONE y el juego NO es favorito, borrar.
+            if (status == GameStatus.NONE && !existingEntry.isFavorite()) {
+                logger.info("GARBAGE COLLECTION TRIGGERED: Deleting game {} for user {}", gameId, userId);
+                libraryRepositoryPort.deleteByUserIdAndGameId(userIdString, gameId);
+                return Optional.empty();
+            } else {
+                logger.info("UPDATING: Keeping game {} for user {}", gameId, userId);
+                UserGame updatedEntry = new UserGame(userIdString, gameId, status, existingEntry.addedAt(), existingEntry.isFavorite());
+                return Optional.of(libraryRepositoryPort.update(updatedEntry));
+            }
+        } else {
+            // Si no existe y el estado es NONE, no crear nada.
+            if (status == GameStatus.NONE) {
+                return Optional.empty();
+            }
+            UserGame newEntry = new UserGame(userIdString, gameId, status, LocalDateTime.now(), false);
+            return Optional.of(libraryRepositoryPort.save(newEntry));
+        }
     }
 
     @Override
@@ -73,11 +93,20 @@ public class LibraryService implements LibraryUseCase {
     public void addGameToFavorites(UUID userId, Long gameId) {
         checkAuthorization(userId);
         String userIdString = userId.toString();
-        UserGame userGame = libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
-                .orElseThrow(() -> new RuntimeException("Game not found in library"));
-        
-        UserGame updatedUserGame = new UserGame(userIdString, gameId, userGame.status(), userGame.addedAt(), true);
-        libraryRepositoryPort.update(updatedUserGame);
+
+        libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
+                .ifPresentOrElse(
+                        existingEntry -> {
+                            UserGame updatedUserGame = new UserGame(userIdString, gameId, existingEntry.status(), existingEntry.addedAt(), true);
+                            libraryRepositoryPort.update(updatedUserGame);
+                        },
+                        () -> {
+                            var _ = gameProviderPort.findByExternalId(gameId)
+                                    .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
+                            UserGame newFavorite = new UserGame(userIdString, gameId, GameStatus.NONE, LocalDateTime.now(), true);
+                            libraryRepositoryPort.save(newFavorite);
+                        }
+                );
     }
 
     @Override
@@ -87,8 +116,12 @@ public class LibraryService implements LibraryUseCase {
         UserGame userGame = libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
                 .orElseThrow(() -> new RuntimeException("Game not found in library"));
 
-        UserGame updatedUserGame = new UserGame(userIdString, gameId, userGame.status(), userGame.addedAt(), false);
-        libraryRepositoryPort.update(updatedUserGame);
+        if (userGame.status() == GameStatus.NONE) {
+            libraryRepositoryPort.deleteByUserIdAndGameId(userIdString, gameId);
+        } else {
+            UserGame updatedUserGame = new UserGame(userIdString, gameId, userGame.status(), userGame.addedAt(), false);
+            libraryRepositoryPort.update(updatedUserGame);
+        }
     }
 
     @Override
