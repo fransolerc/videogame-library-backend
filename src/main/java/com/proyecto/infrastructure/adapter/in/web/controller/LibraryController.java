@@ -1,12 +1,14 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
 import com.proyecto.application.port.in.LibraryUseCase;
+import com.proyecto.domain.model.UserGame;
 import com.proyecto.infrastructure.adapter.in.web.mapper.UserGameMapper;
 import com.proyecto.videogames.generated.api.LibraryApi;
 import com.proyecto.videogames.generated.model.UpdateGameStatusRequestDTO;
 import com.proyecto.videogames.generated.model.UserGameDTO;
 import com.proyecto.videogames.generated.model.UserGamePageDTO;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.PageRequest;
@@ -73,12 +75,12 @@ public class LibraryController implements LibraryApi {
     }
 
     @Override
-    public ResponseEntity<Void> addGameToFavorites(
+    public ResponseEntity<UserGameDTO> addGameToFavorites(
             @NotNull @PathVariable("userId") UUID userId,
             @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId
     ) {
-        libraryUseCase.addGameToFavorites(userId, gameId);
-        return ResponseEntity.noContent().build();
+        UserGame updatedUserGame = libraryUseCase.addGameToFavorites(userId, gameId);
+        return ResponseEntity.ok(userGameMapper.toApiUserGame(updatedUserGame));
     }
 
     @Override
@@ -93,8 +95,8 @@ public class LibraryController implements LibraryApi {
     @Override
     public ResponseEntity<UserGamePageDTO> listFavoriteGames(
             @NotNull @PathVariable("userId") UUID userId,
-            @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
-            @Valid @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
+            @Min(0) @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
+            @Min(1) @Max(100) @Valid @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
     ) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(userGameMapper.toApiUserGamePage(libraryUseCase.listFavoriteGames(userId, pageable)));

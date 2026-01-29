@@ -13,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 @RestController
 public class UserController implements UsersApi {
@@ -34,7 +37,14 @@ public class UserController implements UsersApi {
         );
 
         UserDTO apiUser = userMapper.toApiUser(domainUser);
-        return ResponseEntity.status(HttpStatus.CREATED).body(apiUser);
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(apiUser.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(apiUser);
     }
 
     @Override

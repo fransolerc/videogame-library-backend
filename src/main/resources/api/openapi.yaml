@@ -134,6 +134,7 @@ paths:
         Crea un nuevo usuario en el sistema.
         Requiere un nombre de usuario, un email y una contraseña.
       operationId: registerUser
+      security: [] # Anulación de seguridad para que sea público
       requestBody:
         required: true
         content:
@@ -161,6 +162,7 @@ paths:
         Autentica a un usuario con su email y contraseña.
         Si las credenciales son válidas, devuelve los datos del usuario (sin la contraseña).
       operationId: loginUser
+      security: [] # Anulación de seguridad para que sea público
       requestBody:
         required: true
         content:
@@ -319,6 +321,9 @@ paths:
       tags:
         - Library
       summary: Marcar un juego como favorito
+      description: >
+        Marca un juego como favorito. Si el juego no está en la biblioteca,
+        se añade automáticamente con el estado 'NONE'.
       operationId: addGameToFavorites
       parameters:
         - name: userId
@@ -328,6 +333,7 @@ paths:
           schema:
             type: string
             format: uuid
+            maxLength: 36
         - name: gameId
           in: path
           required: true
@@ -337,14 +343,21 @@ paths:
             format: int64
             minimum: 1
       responses:
-        '204':
-          description: Juego marcado como favorito
+        '200':
+          description: Juego marcado como favorito exitosamente. Devuelve el estado actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserGameDTO'
         '404':
-          description: Juego no encontrado en la biblioteca del usuario
+          description: El juego base no fue encontrado en la API externa.
     delete:
       tags:
         - Library
       summary: Quitar un juego de favoritos
+      description: >
+        Quita un juego de la lista de favoritos. Si el juego no tiene un estado
+        asignado (ej. 'PLAYING'), se elimina por completo de la biblioteca.
       operationId: removeGameFromFavorites
       parameters:
         - name: userId
@@ -354,6 +367,7 @@ paths:
           schema:
             type: string
             format: uuid
+            maxLength: 36
         - name: gameId
           in: path
           required: true
@@ -373,6 +387,9 @@ paths:
       tags:
         - Library
       summary: Listar los juegos favoritos de un usuario
+      description: >
+        Devuelve una lista paginada de todos los juegos que un usuario ha
+        marcado como favoritos.
       operationId: listFavoriteGames
       parameters:
         - name: userId
@@ -382,18 +399,22 @@ paths:
           schema:
             type: string
             format: uuid
+            maxLength: 36
         - name: page
           in: query
           description: Número de página (empezando en 0)
           schema:
             type: integer
             default: 0
+            minimum: 0
         - name: size
           in: query
           description: Tamaño de la página
           schema:
             type: integer
             default: 20
+            minimum: 1
+            maximum: 100
       responses:
         '200':
           description: Lista paginada de juegos favoritos
@@ -413,65 +434,86 @@ components:
   schemas:
     GameDTO:
       type: object
+      description: Representa los datos de un videojuego obtenidos de la API externa.
       properties:
         id:
-          type: string
+          type: integer
+          format: int64
           description: El ID del juego (de IGDB).
+          minimum: 1
         name:
           type: string
           description: El nombre del juego.
+          maxLength: 255
         genres:
           type: array
           items:
             type: string
+            maxLength: 255
           description: Lista de géneros del juego.
+          maxItems: 50
         releaseDate:
           type: string
           format: date
           description: Fecha de lanzamiento.
+          maxLength: 10
         coverImageUrl:
           type: string
           format: uri
           description: URL de la imagen de portada.
+          maxLength: 2048
         summary:
           type: string
           description: Resumen detallado del juego.
+          maxLength: 4096
         videos:
           type: array
           items:
             type: string
             format: uri
+            maxLength: 2048
           description: Lista de URLs de videos relacionados.
+          maxItems: 50
         screenshots:
           type: array
           items:
             type: string
             format: uri
+            maxLength: 2048
           description: Lista de URLs de capturas de pantalla.
+          maxItems: 50
         platforms:
           type: array
           items:
             type: string
+            maxLength: 255
           description: Lista de plataformas disponibles.
+          maxItems: 50
         rating:
           type: number
           format: double
           description: Puntuación media de los usuarios (0-100).
+          minimum: 0
+          maximum: 100
 
     PlatformDTO:
       type: object
+      description: Representa una plataforma de videojuegos.
       properties:
         id:
           type: integer
           format: int64
           description: El ID de la plataforma (de IGDB).
+          minimum: 1
         name:
           type: string
           description: El nombre de la plataforma.
+          maxLength: 255
         generation:
           type: integer
           format: int32
           description: La generación de la plataforma.
+          minimum: 1
         platformType:
           type: string
           description: El tipo de plataforma.
@@ -483,18 +525,33 @@ components:
             - PORTABLE_CONSOLE
             - COMPUTER
             - UNKNOWN
+          x-enum-descriptions:
+            - Consola de sobremesa (ej. PlayStation, Xbox)
+            - Máquina recreativa
+            - Plataforma de hardware genérica (ej. PC)
+            - Sistema operativo
+            - Consola portátil (ej. Nintendo Switch)
+            - Ordenador personal
+            - Tipo desconocido o no especificado
 
     UserDTO:
       type: object
+      description: Representa los datos públicos de un usuario.
       properties:
         id:
           type: string
           format: uuid
+          maxLength: 36
+          description: El ID único del usuario.
         username:
           type: string
+          maxLength: 255
+          description: El nombre de usuario.
         email:
           type: string
           format: email
+          maxLength: 255
+          description: El correo electrónico del usuario.
 
     UserRegistrationRequestDTO:
       type: object
@@ -502,28 +559,41 @@ components:
         - username
         - email
         - password
+      description: Datos necesarios para registrar un nuevo usuario.
       properties:
         username:
           type: string
+          maxLength: 255
+          description: El nombre de usuario deseado.
         email:
           type: string
           format: email
+          maxLength: 255
+          description: El correo electrónico del usuario.
         password:
           type: string
           format: password
+          maxLength: 255
           pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d\\W]{8,}$"
           description: "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número."
 
     GameStatusDTO:
       type: string
+      description: El estado de un juego en la biblioteca de un usuario.
       enum:
         - NONE
         - WANT_TO_PLAY
         - PLAYING
         - COMPLETED
+      x-enum-descriptions:
+        - El juego está en la biblioteca (ej. es favorito) pero no tiene un estado de juego activo.
+        - El usuario quiere jugar a este juego en el futuro.
+        - El usuario está jugando actualmente a este juego.
+        - El usuario ha completado este juego.
 
     UpdateGameStatusRequestDTO:
       type: object
+      description: Objeto para actualizar el estado de un juego.
       required:
         - status
       properties:
@@ -532,35 +602,47 @@ components:
 
     UserGameDTO:
       type: object
+      description: Representa la relación entre un usuario y un juego en su biblioteca.
       properties:
         userId:
           type: string
           format: uuid
+          maxLength: 36
+          description: El ID del usuario.
         gameId:
           type: integer
           format: int64
+          minimum: 1
+          description: El ID del juego (de IGDB).
         status:
           $ref: '#/components/schemas/GameStatusDTO'
         addedAt:
           type: string
           format: date-time
+          maxLength: 30
+          description: La fecha en que el juego fue añadido a la biblioteca.
         isFavorite:
           type: boolean
+          description: Indica si el juego está marcado como favorito.
 
     UserGamePageDTO:
       type: object
+      description: Representa una página de resultados para las entradas de la biblioteca de un usuario.
       properties:
         content:
           type: array
           items:
             $ref: '#/components/schemas/UserGameDTO'
+          maxItems: 100
         pageable:
           type: object
           properties:
             pageNumber:
               type: integer
+              minimum: 0
             pageSize:
               type: integer
+              minimum: 1
             sort:
               type: object
               properties:
@@ -570,18 +652,30 @@ components:
                   type: boolean
                 empty:
                   type: boolean
+              description: Información sobre la paginación.
         totalPages:
           type: integer
+          minimum: 0
+          description: El número total de páginas.
         totalElements:
           type: integer
+          format: int64
+          minimum: 0
+          description: El número total de elementos.
         last:
           type: boolean
+          description: Indica si esta es la última página.
         first:
           type: boolean
+          description: Indica si esta es la primera página.
         size:
           type: integer
+          minimum: 0
+          description: El tamaño de la página.
         number:
           type: integer
+          minimum: 0
+          description: El número de la página actual.
         sort:
           type: object
           properties:
@@ -591,58 +685,75 @@ components:
               type: boolean
             empty:
               type: boolean
+          description: Información sobre la ordenación.
         numberOfElements:
           type: integer
+          minimum: 0
+          description: El número de elementos en la página actual.
         empty:
           type: boolean
+          description: Indica si la página está vacía.
 
     LoginRequestDTO:
       type: object
       required:
         - email
         - password
+      description: Datos necesarios para iniciar sesión.
       properties:
         email:
           type: string
           format: email
+          maxLength: 255
           description: Correo electrónico del usuario.
         password:
           type: string
           format: password
+          maxLength: 255
           description: Contraseña del usuario.
 
     LoginResponseDTO:
       type: object
+      description: Respuesta al iniciar sesión, incluyendo el token JWT.
       properties:
         token:
           type: string
+          maxLength: 2048
           description: Token JWT para autenticación.
         userId:
           type: string
           format: uuid
+          maxLength: 36
           description: ID del usuario autenticado.
         username:
           type: string
+          maxLength: 255
           description: Nombre de usuario del usuario autenticado.
 
     GameFilterRequestDTO:
       type: object
+      description: Objeto para realizar una búsqueda avanzada de juegos.
       required:
         - filter
       properties:
         filter:
           type: string
+          maxLength: 1024
           description: "La consulta de filtrado en el formato de la API de IGDB. Ejemplo: 'genres = (12, 32) & platforms = (6, 48)'"
         sort:
           type: string
+          maxLength: 255
           description: "El campo por el que ordenar los resultados. Ejemplo: 'total_rating desc'"
         limit:
           type: integer
           format: int32
           description: "El número máximo de resultados a devolver. Por defecto: 10."
           default: 10
+          minimum: 1
+          maximum: 50
         offset:
           type: integer
           format: int32
           description: "El número de resultados a saltar para la paginación. Por defecto: 0."
           default: 0
+          minimum: 0
