@@ -314,6 +314,96 @@ paths:
         '404':
           description: Usuario o juego no encontrado en la biblioteca
 
+  /users/{userId}/games/{gameId}/favorite:
+    post:
+      tags:
+        - Library
+      summary: Marcar un juego como favorito
+      operationId: addGameToFavorites
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+        - name: gameId
+          in: path
+          required: true
+          description: ID del juego
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '204':
+          description: Juego marcado como favorito
+        '404':
+          description: Juego no encontrado en la biblioteca del usuario
+    delete:
+      tags:
+        - Library
+      summary: Quitar un juego de favoritos
+      operationId: removeGameFromFavorites
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+        - name: gameId
+          in: path
+          required: true
+          description: ID del juego
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '204':
+          description: Juego quitado de favoritos
+        '404':
+          description: Juego no encontrado en la biblioteca del usuario
+
+  /users/{userId}/favorites:
+    get:
+      tags:
+        - Library
+      summary: Listar los juegos favoritos de un usuario
+      operationId: listFavoriteGames
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID del usuario
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Número de página (empezando en 0)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Tamaño de la página
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Lista paginada de juegos favoritos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserGamePageDTO'
+        '404':
+          description: Usuario no encontrado
+
 components:
   securitySchemes:
     bearerAuth:
@@ -453,6 +543,57 @@ components:
         addedAt:
           type: string
           format: date-time
+        isFavorite:
+          type: boolean
+
+    UserGamePageDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserGameDTO'
+        pageable:
+          type: object
+          properties:
+            pageNumber:
+              type: integer
+            pageSize:
+              type: integer
+            sort:
+              type: object
+              properties:
+                sorted:
+                  type: boolean
+                unsorted:
+                  type: boolean
+                empty:
+                  type: boolean
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+        last:
+          type: boolean
+        first:
+          type: boolean
+        size:
+          type: integer
+        number:
+          type: integer
+        sort:
+          type: object
+          properties:
+            sorted:
+              type: boolean
+            unsorted:
+              type: boolean
+            empty:
+              type: boolean
+        numberOfElements:
+          type: integer
+        empty:
+          type: boolean
 
     LoginRequestDTO:
       type: object

@@ -6,6 +6,8 @@ import com.proyecto.infrastructure.adapter.out.persistence.entity.UserEntity;
 import com.proyecto.infrastructure.adapter.out.persistence.entity.UserGameEntity;
 import com.proyecto.infrastructure.adapter.out.persistence.repository.SpringDataUserGameRepository;
 import com.proyecto.infrastructure.adapter.out.persistence.repository.SpringDataUserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +30,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
         UserEntity userEntity = userRepository.findById(userGame.userId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserGameEntity entity = toEntity(userGame, userEntity);
+        UserGameEntity entity = toEntity(userGame, userEntity, userGame.isFavorite());
         UserGameEntity savedEntity = userGameRepository.save(entity);
         return toDomain(savedEntity);
     }
@@ -51,6 +53,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
                 .orElseThrow(() -> new RuntimeException("UserGame not found"));
 
         entity.setStatus(userGame.status());
+        entity.setIsFavorite(userGame.isFavorite());
         UserGameEntity updatedEntity = userGameRepository.save(entity);
         return toDomain(updatedEntity);
     }
@@ -61,11 +64,25 @@ public class JpaLibraryAdapter implements LibraryRepositoryPort {
         userGameRepository.deleteByUserIdAndGameId(userId, gameId);
     }
 
-    private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity) {
-        return new UserGameEntity(userEntity, userGame.gameId(), userGame.status());
+    @Override
+    public Page<UserGame> findByUserIdAndIsFavoriteTrue(String userId, Pageable pageable) {
+        Page<UserGameEntity> entityPage = userGameRepository.findByUserIdAndIsFavoriteTrue(userId, pageable);
+        return entityPage.map(this::toDomain);
+    }
+
+    private UserGameEntity toEntity(UserGame userGame, UserEntity userEntity, boolean isFavorite) {
+        UserGameEntity entity = new UserGameEntity(userEntity, userGame.gameId(), userGame.status());
+        entity.setIsFavorite(isFavorite);
+        return entity;
     }
 
     private UserGame toDomain(UserGameEntity entity) {
-        return new UserGame(entity.getUser().getId(), entity.getGameId(), entity.getStatus(), entity.getAddedAt());
+        return new UserGame(
+                entity.getUser().getId(),
+                entity.getGameId(),
+                entity.getStatus(),
+                entity.getAddedAt(),
+                entity.getIsFavorite()
+        );
     }
 }

@@ -2,81 +2,50 @@ package com.proyecto.infrastructure.adapter.out.persistence.entity;
 
 import com.proyecto.domain.model.GameStatus;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
-@Table(name = "user_games", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "game_id"})
-})
+@Table(name = "user_games")
+@Getter
+@Setter
+@NoArgsConstructor
+@IdClass(UserGameId.class)
 public class UserGameEntity {
 
     @Id
-    private String id;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
     private UserEntity user;
 
-    @Column(name = "game_id", nullable = false)
+    @Id
+    @Column(name = "game_id")
     private Long gameId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(nullable = false)
     private GameStatus status;
 
-    @Column(name = "added_at", nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime addedAt;
 
-    public UserGameEntity() {
-        this.id = UUID.randomUUID().toString();
-        this.addedAt = LocalDateTime.now();
-    }
+    @Column(nullable = false)
+    private Boolean isFavorite = false;
 
     public UserGameEntity(UserEntity user, Long gameId, GameStatus status) {
-        this();
         this.user = user;
         this.gameId = gameId;
         this.status = status;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public UserEntity getUser() {
-        return user;
-    }
-
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
-
-    public Long getGameId() {
-        return gameId;
-    }
-
-    public void setGameId(Long gameId) {
-        this.gameId = gameId;
-    }
-
-    public GameStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(GameStatus status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getAddedAt() {
-        return addedAt;
-    }
-
-    public void setAddedAt(LocalDateTime addedAt) {
-        this.addedAt = addedAt;
+    @PrePersist
+    protected void onCreate() {
+        addedAt = LocalDateTime.now();
+        if (isFavorite == null) {
+            isFavorite = false;
+        }
     }
 }
