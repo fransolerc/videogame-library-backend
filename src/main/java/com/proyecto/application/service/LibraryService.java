@@ -1,9 +1,11 @@
 package com.proyecto.application.service;
 
 import com.proyecto.application.port.in.LibraryUseCase;
+import com.proyecto.application.port.out.FavoriteGameEventPort;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.application.port.out.LibraryRepositoryPort;
 import com.proyecto.application.port.out.UserRepositoryPort;
+import com.proyecto.domain.event.FavoriteGameEvent;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.UserGame;
@@ -25,11 +27,14 @@ public class LibraryService implements LibraryUseCase {
     private final LibraryRepositoryPort libraryRepositoryPort;
     private final GameProviderPort gameProviderPort;
     private final UserRepositoryPort userRepositoryPort;
+    private final FavoriteGameEventPort favoriteGameEventPort;
 
-    public LibraryService(LibraryRepositoryPort libraryRepositoryPort, GameProviderPort gameProviderPort, UserRepositoryPort userRepositoryPort) {
+    public LibraryService(LibraryRepositoryPort libraryRepositoryPort, GameProviderPort gameProviderPort,
+                          UserRepositoryPort userRepositoryPort, FavoriteGameEventPort favoriteGameEventPort) {
         this.libraryRepositoryPort = libraryRepositoryPort;
         this.gameProviderPort = gameProviderPort;
         this.userRepositoryPort = userRepositoryPort;
+        this.favoriteGameEventPort = favoriteGameEventPort;
     }
 
     @Override
@@ -84,10 +89,10 @@ public class LibraryService implements LibraryUseCase {
         checkAuthorization(userId);
         String userIdString = userId.toString();
 
-        return libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
+        UserGame updatedUserGame = libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
                 .map(existingEntry -> {
-                    UserGame updatedUserGame = new UserGame(userIdString, gameId, existingEntry.status(), existingEntry.addedAt(), true);
-                    return libraryRepositoryPort.update(updatedUserGame);
+                    UserGame updated = new UserGame(userIdString, gameId, existingEntry.status(), existingEntry.addedAt(), true);
+                    return libraryRepositoryPort.update(updated);
                 })
                 .orElseGet(() -> {
                     var _ = gameProviderPort.findByExternalId(gameId)
@@ -95,6 +100,12 @@ public class LibraryService implements LibraryUseCase {
                     UserGame newFavorite = new UserGame(userIdString, gameId, GameStatus.NONE, LocalDateTime.now(), true);
                     return libraryRepositoryPort.save(newFavorite);
                 });
+
+        // Publicar el evento
+        FavoriteGameEvent event = new FavoriteGameEvent(userId, gameId, true, LocalDateTime.now());
+        favoriteGameEventPort.publishFavoriteGameEvent(event);
+
+        return updatedUserGame;
     }
 
     @Override

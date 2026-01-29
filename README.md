@@ -1,8 +1,8 @@
 # Video Game Library Backend
 
-Este proyecto es un backend para una aplicación de biblioteca de videojuegos, construido con una **Arquitectura Hexagonal**. Se integra con la API de [IGDB](https://api-docs.igdb.com/) para obtener datos de juegos en tiempo real.
+Este proyecto es un backend para una aplicación de biblioteca de videojuegos, construido con una **Arquitectura Hexagonal**. Se integra con la API de [IGDB](https://api-docs.igdb.com/) para obtener datos de juegos en tiempo real y utiliza **Apache Kafka** para la publicación de eventos.
 
-El objetivo es servir como un ejemplo práctico de una arquitectura de software moderna, limpia y escalable, incluyendo un sistema de autenticación robusto.
+El objetivo es servir como un ejemplo práctico de una arquitectura de software moderna, limpia y escalable, incluyendo un sistema de autenticación robusto y comunicación asíncrona.
 
 ---
 
@@ -17,9 +17,10 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
 - **Arquitectura Hexagonal (Puertos y Adaptadores)**
 - **Spring Security**: Autenticación y autorización (JWT).
 - **JSON Web Tokens (JWT)**: Para la autenticación sin estado.
+- **Apache Kafka**: Para la mensajería asíncrona de eventos.
 - **MapStruct**: Para el mapeo de objetos entre capas.
 - **JJWT**: Librería para la implementación de JWT.
-- **JUnit 5 / Mockito**: Para pruebas unitarias y de integración.
+- **JUnit 5 / Mockito / WireMock**: Para pruebas unitarias y de integración.
 
 ---
 
@@ -29,30 +30,35 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
 
 - **JDK 25** o superior.
 - **Maven 3.8** o superior.
+- **Docker** y **Docker Compose** para ejecutar Kafka (o una instancia de Kafka local).
 - Un cliente de API como Postman, Insomnia, o simplemente tu navegador.
 
 ### Ejecutar la Aplicación
 
-1.  **Configurar la API de IGDB y JWT**:
-    - Este proyecto requiere credenciales de la API de IGDB/Twitch.
-    - Debes crear o actualizar tu archivo `src/main/resources/application.yml` con el siguiente contenido y tus credenciales:
+1.  **Iniciar Kafka**:
+    -   En la raíz del proyecto, ejecuta el siguiente comando para iniciar un broker de Kafka y Zookeeper:
+        ```sh
+        docker-compose up -d
+        ```
+
+2.  **Configurar la API de IGDB y JWT**:
+    -   Este proyecto requiere credenciales de la API de IGDB/Twitch.
+    -   Debes crear o actualizar tu archivo `src/main/resources/application.yml` con el siguiente contenido y tus credenciales:
       ```yaml
       igdb:
-        api:
-          client-id: "TU_CLIENT_ID_TWITCH"
-          client-secret: "TU_CLIENT_SECRET_TWITCH"
+        client-id: "TU_CLIENT_ID_TWITCH"
+        client-secret: "TU_CLIENT_SECRET_TWITCH"
       jwt:
         secret: "una-clave-secreta-muy-larga-y-segura-que-deberias-cambiar-en-produccion" # ¡Cambia esto en producción!
-        expiration.ms: 86400000 # 24 horas
       ```
 
-2.  **Generar código y compilar**:
+3.  **Generar código y compilar**:
     ```sh
     mvn clean install
     ```
     Esto generará las clases de la API a partir de `openapi.yaml` y compilará el proyecto.
 
-3.  **Ejecutar la aplicación**:
+4.  **Ejecutar la aplicación**:
     ```sh
     mvn spring-boot:run
     ```
@@ -63,74 +69,53 @@ La aplicación se iniciará en `http://localhost:8080`.
 
 ## Endpoints de la API
 
-La documentación completa de la API está disponible en [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) una vez que la aplicación está en marcha.
+La documentación completa de la API está disponible en **[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)** una vez que la aplicación está en marcha.
 
-### Autenticación JWT
+**Importante**: Todos los endpoints están prefijados con `/api/v1`.
 
-Todos los endpoints protegidos requieren un token JWT en la cabecera `Authorization: Bearer <token>`.
+### Autenticación
 
-1.  **Registrar Usuario**: `POST /users/register`
-    -   **Validación de Contraseña**: La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.
-    ```json
-    {
-      "username": "testuser",
-      "email": "test@example.com",
-      "password": "Password123"
-    }
-    ```
-2.  **Iniciar Sesión**: `POST /users/login`
-    ```json
-    {
-      "email": "test@example.com",
-      "password": "Password123"
-    }
-    ```
-    La respuesta incluirá el token JWT, el `userId` y el `username`. Cópialo y úsalo en el botón "Authorize" de Swagger UI.
+| Método | Endpoint                 | Descripción                                                                                                          |
+|:-------|:-------------------------|:---------------------------------------------------------------------------------------------------------------------|
+| `POST` | `/api/v1/users/register` | Registra un nuevo usuario. La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número. |
+| `POST` | `/api/v1/users/login`    | Inicia sesión y devuelve un token JWT, `userId` y `username`.                                                        |
 
-### Endpoints de Juegos
+### Búsqueda de Juegos
 
--   **`GET /games/search?name={nombre}`**: Busca videojuegos por nombre.
-    -   **Ejemplo**: `http://localhost:8080/games/search?name=Zelda`
--   **`GET /games/{id}`**: Obtiene los detalles completos de un videojuego por su ID de IGDB.
-    -   **Ejemplo**: `http://localhost:8080/games/1115` (para "The Legend of Zelda: Ocarina of Time")
--   **`POST /games/filter`**: Realiza una búsqueda avanzada de videojuegos con filtros, ordenación y paginación.
+| Método | Endpoint               | Descripción                                                         |
+|:-------|:-----------------------|:--------------------------------------------------------------------|
+| `GET`  | `/api/v1/games/search` | Busca videojuegos por nombre. (Ej: `?name=Zelda`)                   |
+| `GET`  | `/api/v1/games/{id}`   | Obtiene los detalles completos de un videojuego por su ID de IGDB.  |
+| `POST` | `/api/v1/games/filter` | Realiza una búsqueda avanzada con filtros, ordenación y paginación. |
+| `GET`  | `/api/v1/platforms`    | Lista todas las plataformas de videojuegos disponibles.             |
 
-### Endpoints de Plataformas
+### Biblioteca de Usuario
 
--   **`GET /platforms`**: Lista todas las plataformas de videojuegos disponibles, incluyendo generación y tipo de plataforma (ej. "CONSOLE", "COMPUTER"), ordenadas alfabéticamente.
-
-### Endpoints de Biblioteca de Usuario
-
--   **`GET /users/{userId}/games`**: Lista todos los juegos en la biblioteca de un usuario.
--   **`GET /users/{userId}/games/{gameId}`**: Obtiene el estado de un juego específico en la biblioteca del usuario. Devuelve 404 si no se encuentra.
--   **`PUT /users/{userId}/games/{gameId}`**: Añade un juego a la biblioteca de un usuario o actualiza su estado si ya existe. Esta operación es idempotente.
--   **`DELETE /users/{userId}/games/{gameId}`**: Elimina un juego de la biblioteca de un usuario.
+| Método   | Endpoint                                         | Descripción                                                                                                                          |
+|:---------|:-------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| `GET`    | `/api/v1/users/{userId}/games`                   | Lista todos los juegos en la biblioteca de un usuario.                                                                               |
+| `GET`    | `/api/v1/users/{userId}/games/{gameId}`          | Obtiene el estado de un juego específico en la biblioteca del usuario.                                                               |
+| `PUT`    | `/api/v1/users/{userId}/games/{gameId}`          | Añade un juego a la biblioteca o actualiza su estado. Si el estado es `NONE` y no es favorito, se elimina.                           |
+| `DELETE` | `/api/v1/users/{userId}/games/{gameId}`          | Elimina un juego de la biblioteca de un usuario (borrado completo).                                                                  |
+| `POST`   | `/api/v1/users/{userId}/games/{gameId}/favorite` | Marca un juego como favorito. Si no está en la biblioteca, lo añade con estado `NONE`. Devuelve el recurso actualizado.              |
+| `DELETE` | `/api/v1/users/{userId}/games/{gameId}/favorite` | Quita un juego de favoritos. Si el estado del juego es `NONE`, se elimina por completo de la biblioteca.                             |
+| `GET`    | `/api/v1/users/{userId}/favorites`               | Lista todos los juegos favoritos de un usuario (paginado).                                                                           |
+| `GET`    | `/api/v1/users/{userId}/favorites/analysis`      | **(Experimental)** Obtiene un análisis de los juegos favoritos de un usuario, generado por un servicio de IA (actualmente simulado). |
 
 ---
 
-## Desarrollo con Frontend (Angular, React, etc.)
+## Pruebas
 
-### Configuración de CORS
+El proyecto tiene una alta cobertura de pruebas, incluyendo:
 
-El backend está configurado para aceptar peticiones desde cualquier origen (`*`), lo que facilita el desarrollo con frontends locales.
+-   **Pruebas Unitarias**: Para los servicios de aplicación y lógica de dominio.
+-   **Pruebas de Integración**: Para los controladores REST, utilizando **WireMock** para simular la API externa de IGDB.
 
-### Acceso desde Dispositivos Móviles
+Para ejecutar todas las pruebas, usa el siguiente comando de Maven:
 
-Si estás desarrollando un frontend (ej. con Angular) y quieres probarlo desde tu móvil en la misma red local, recuerda:
-
-1.  **Arrancar el servidor de frontend para que sea visible en la red**:
-    ```sh
-    # Ejemplo para Angular
-    ng serve --host 0.0.0.0
-    ```
-
-2.  **Apuntar la URL de la API del frontend a la IP de tu ordenador**, no a `localhost`.
-    -   **Ejemplo (environment.ts en Angular)**:
-        ```typescript
-        export const environment = {
-          apiUrl: 'http://192.168.1.126:8080' // Usa la IP de tu PC
-        };
-        ```
+```sh
+mvn clean verify
+```
 
 ---
 
@@ -139,10 +124,11 @@ Si estás desarrollando un frontend (ej. con Angular) y quieres probarlo desde t
 El proyecto sigue los principios de la **Arquitectura Hexagonal** para separar el dominio de negocio de los detalles de infraestructura.
 
 -   **`domain`**: Contiene la lógica y las entidades del negocio (el "corazón" de la aplicación). No depende de nada.
--   **`application`**: Orquesta los flujos de trabajo. Contiene los *puertos* (interfaces `UseCase` agrupadas por contexto) y los *casos de uso* (servicios que implementan esos `UseCase`).
+-   **`application`**: Orquesta los flujos de trabajo. Contiene los *puertos* (interfaces `UseCase`) y los *casos de uso* (servicios que implementan esos `UseCase`).
 -   **`infrastructure`**: Contiene las implementaciones concretas de los puertos (los "adaptadores").
-    -   **`adapter.in.web`**: Adaptadores de entrada (Driving Adapters), como los controladores REST y mappers de API.
+    -   **`adapter.in.web`**: Adaptadores de entrada (Driving Adapters), como los controladores REST.
     -   **`adapter.out.persistence`**: Adaptadores de salida (Driven Adapters) para bases de datos (JPA).
-    -   **`adapter.out.provider`**: Adaptadores de salida (Driven Adapters) para proveedores externos (IGDB API).
+    -   **`adapter.out.provider`**: Adaptadores de salida para proveedores externos (IGDB API).
+    -   **`adapter.out.kafka`**: Adaptadores de salida para publicar eventos en Kafka.
     -   **`security`**: Configuración de seguridad (JWT).
     -   **`config`**: Configuraciones generales de la aplicación.
