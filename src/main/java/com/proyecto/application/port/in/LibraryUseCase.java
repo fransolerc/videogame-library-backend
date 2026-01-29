@@ -19,7 +19,7 @@ public interface LibraryUseCase {
 
     void removeGameFromLibrary(UUID userId, Long gameId);
 
-    void addGameToFavorites(UUID userId, Long gameId);
+    UserGame addGameToFavorites(UUID userId, Long gameId);
 
     void removeGameFromFavorites(UUID userId, Long gameId);
 

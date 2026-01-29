@@ -37,7 +37,7 @@ public interface UserGameMapper {
         UserGamePageDTO pageDTO = new UserGamePageDTO();
         pageDTO.setContent(toApiUserGameList(page.getContent()));
         pageDTO.setTotalPages(page.getTotalPages());
-        pageDTO.setTotalElements((int) page.getTotalElements());
+        pageDTO.setTotalElements(page.getTotalElements());
         pageDTO.setNumber(page.getNumber());
         pageDTO.setSize(page.getSize());
         pageDTO.setFirst(page.isFirst());
