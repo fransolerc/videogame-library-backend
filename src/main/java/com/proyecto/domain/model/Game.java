@@ -1,5 +1,7 @@
 package com.proyecto.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -10,7 +12,7 @@ import java.util.List;
  * @param name          El nombre del juego.
  * @param genres        Una lista de géneros a los que pertenece el juego.
  * @param releaseDate   La fecha de lanzamiento.
- * @param coverImageUrl La URL de la imagen de portada.
+ * @param cover         La URL de la imagen de portada.
  * @param summary       El resumen detallado del juego.
  * @param videos        Lista de URLs de videos relacionados (trailers, gameplays).
  * @param screenshots   Lista de URLs de capturas de pantalla.
@@ -21,8 +23,9 @@ public record Game(
         String id,
         String name,
         List<String> genres,
+        @JsonProperty("release_date")
         LocalDate releaseDate,
-        String coverImageUrl,
+        Cover cover,
         String summary,
         List<String> videos,
         List<String> screenshots,

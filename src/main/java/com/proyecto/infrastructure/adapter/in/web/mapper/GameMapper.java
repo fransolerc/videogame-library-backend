@@ -13,14 +13,14 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface GameMapper {
 
-    @Mapping(target = "id", source = "id")
+    @Mapping(target = "id", expression = "java(domainGame.id() != null ? Long.parseLong(domainGame.id()) : null)")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "genres", source = "genres")
     @Mapping(target = "releaseDate", source = "releaseDate")
     @Mapping(target = "summary", source = "summary")
     @Mapping(target = "rating", expression = "java(mapRating(domainGame.rating()))")
     @Mapping(target = "platforms", source = "platforms")
-    @Mapping(target = "coverImageUrl", source = "coverImageUrl")
+    @Mapping(target = "cover", source = "cover")
     @Mapping(target = "videos", source = "videos")
     @Mapping(target = "screenshots", source = "screenshots")
     GameDTO toApiGame(Game domainGame);

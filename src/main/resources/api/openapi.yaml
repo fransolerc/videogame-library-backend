@@ -432,6 +432,45 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    CoverDTO:
+      type: object
+      description: Representa la carátula de un juego.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: El ID de la carátula.
+        alpha_channel:
+          type: boolean
+          description: Indica si la imagen tiene canal alfa.
+        animated:
+          type: boolean
+          description: Indica si la imagen es animada.
+        checksum:
+          type: string
+          description: El checksum de la imagen.
+        game:
+          type: integer
+          format: int64
+          description: El ID del juego asociado.
+        game_localization:
+          type: integer
+          format: int64
+          description: El ID de la localización del juego asociado.
+        height:
+          type: integer
+          description: La altura de la imagen en píxeles.
+        image_id:
+          type: string
+          description: El ID de la imagen en los servidores de IGDB.
+        url:
+          type: string
+          format: uri
+          description: La URL de la imagen.
+        width:
+          type: integer
+          description: El ancho de la imagen en píxeles.
+
     GameDTO:
       type: object
       description: Representa los datos de un videojuego obtenidos de la API externa.
@@ -457,11 +496,8 @@ components:
           format: date
           description: Fecha de lanzamiento.
           maxLength: 10
-        coverImageUrl:
-          type: string
-          format: uri
-          description: URL de la imagen de portada.
-          maxLength: 2048
+        cover:
+          $ref: '#/components/schemas/CoverDTO'
         summary:
           type: string
           description: Resumen detallado del juego.

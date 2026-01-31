@@ -3,10 +3,12 @@ package com.proyecto.infrastructure.provider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.application.port.out.PlatformProviderPort;
+import com.proyecto.domain.model.Cover;
 import com.proyecto.domain.model.Game;
 import com.proyecto.domain.model.Platform;
 import com.proyecto.domain.model.PlatformType;
 import com.proyecto.infrastructure.config.IgdbApiConfig;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -32,14 +34,14 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     private static final String HEADER_CLIENT_ID = "Client-ID";
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String FIELDS_GAME_BASE = "fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating;";
+    private static final String FIELDS_GAME_BASE = "fields name, genres.name, first_release_date, cover.*, summary, videos.video_id, screenshots.image_id, platforms.name, rating;";
 
     private final IgdbApiConfig apiConfig;
     private final RestTemplate restTemplate;
 
     private String accessToken;
     private long tokenExpirationTime;
-    
+
     private record AuthResponse(@JsonProperty("access_token") String accessToken, @JsonProperty("expires_in") long expiresIn) {}
     private record IgdbGameResponse(
             long id,
@@ -54,7 +56,18 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             Double rating
     ) {}
     private record IgdbGenreResponse(String name) {}
-    private record IgdbCoverResponse(@JsonProperty("image_id") String imageId) {}
+    private record IgdbCoverResponse(
+            long id,
+            @JsonProperty("alpha_channel") boolean alphaChannel,
+            boolean animated,
+            String checksum,
+            long game,
+            @JsonProperty("game_localization") Long gameLocalization,
+            int height,
+            @JsonProperty("image_id") String imageId,
+            String url,
+            int width
+    ) {}
     private record IgdbVideoResponse(@JsonProperty("video_id") String videoId) {}
     private record IgdbScreenshotResponse(@JsonProperty("image_id") String imageId) {}
     private record IgdbPlatformResponse(
@@ -223,21 +236,19 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     private Game mapToDomain(IgdbGameResponse igdbGame) {
         List<String> genreNames = igdbGame.genres() != null ? igdbGame.genres().stream().map(IgdbGenreResponse::name).toList() : Collections.emptyList();
         LocalDate releaseDate = igdbGame.releaseDate() != null ? Instant.ofEpochSecond(igdbGame.releaseDate()).atZone(ZoneId.systemDefault()).toLocalDate() : null;
-        
-        String coverUrl = (igdbGame.cover() != null && igdbGame.cover().imageId() != null)
-                ? "https://images.igdb.com/igdb/image/upload/t_cover_big/" + igdbGame.cover().imageId() + ".jpg"
-                : PLACEHOLDER_IMAGE_URL;
 
-        List<String> videoUrls = igdbGame.videos() != null 
+        Cover domainCover = getDomainCover(igdbGame);
+
+        List<String> videoUrls = igdbGame.videos() != null
                 ? igdbGame.videos().stream()
-                    .map(v -> "https://www.youtube.com/watch?v=" + v.videoId())
-                    .toList() 
+                .map(v -> "https://www.youtube.com/watch?v=" + v.videoId())
+                .toList()
                 : Collections.emptyList();
 
         List<String> screenshotUrls = igdbGame.screenshots() != null
                 ? igdbGame.screenshots().stream()
-                    .map(s -> "https://images.igdb.com/igdb/image/upload/t_screenshot_big/" + s.imageId() + ".jpg")
-                    .toList()
+                .map(s -> "https://images.igdb.com/igdb/image/upload/t_screenshot_big/" + s.imageId() + ".jpg")
+                .toList()
                 : Collections.emptyList();
 
         List<String> platformNames = igdbGame.platforms() != null
@@ -249,13 +260,37 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
                 igdbGame.name(),
                 genreNames,
                 releaseDate,
-                coverUrl,
+                domainCover,
                 igdbGame.summary(),
                 videoUrls,
                 screenshotUrls,
                 platformNames,
                 igdbGame.rating()
         );
+    }
+
+    private static @Nullable Cover getDomainCover(IgdbGameResponse igdbGame) {
+        Cover domainCover = null;
+        if (igdbGame.cover() != null) {
+            IgdbCoverResponse igdbCover = igdbGame.cover();
+            String coverUrl = (igdbCover.imageId() != null)
+                    ? "https://images.igdb.com/igdb/image/upload/t_cover_big/" + igdbCover.imageId() + ".jpg"
+                    : PLACEHOLDER_IMAGE_URL;
+
+            domainCover = new Cover(
+                    igdbCover.id(),
+                    igdbCover.alphaChannel(),
+                    igdbCover.animated(),
+                    igdbCover.checksum(),
+                    igdbCover.game(),
+                    igdbCover.gameLocalization(),
+                    igdbCover.height(),
+                    igdbCover.imageId(),
+                    coverUrl,
+                    igdbCover.width()
+            );
+        }
+        return domainCover;
     }
 
     private Platform mapToDomain(IgdbPlatformResponse igdbPlatform) {
