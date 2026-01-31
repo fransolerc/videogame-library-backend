@@ -28,20 +28,12 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
 
 ### Prerrequisitos
 
-- **JDK 25** o superior.
-- **Maven 3.8** o superior.
-- **Docker** y **Docker Compose** para ejecutar Kafka (o una instancia de Kafka local).
+- **Docker Desktop** (o Docker Engine) instalado y en ejecución.
 - Un cliente de API como Postman, Insomnia, o simplemente tu navegador.
 
-### Ejecutar la Aplicación
+### Ejecutar con Docker
 
-1.  **Iniciar Kafka**:
-    -   En la raíz del proyecto, ejecuta el siguiente comando para iniciar un broker de Kafka y Zookeeper:
-        ```sh
-        docker-compose up -d
-        ```
-
-2.  **Configurar la API de IGDB y JWT**:
+1.  **Configurar la API de IGDB y JWT**:
     -   Este proyecto requiere credenciales de la API de IGDB/Twitch.
     -   Debes crear o actualizar tu archivo `src/main/resources/application.yml` con el siguiente contenido y tus credenciales:
       ```yaml
@@ -51,14 +43,45 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
       jwt:
         secret: "una-clave-secreta-muy-larga-y-segura-que-deberias-cambiar-en-produccion" # ¡Cambia esto en producción!
       ```
+    -   **Nota**: Para que estos cambios sean efectivos en la imagen de Docker, asegúrate de que `application.yml` esté presente en `src/main/resources` antes de construir la imagen.
 
-3.  **Generar código y compilar**:
+2.  **Construir la imagen de Docker**:
+    -   Abre una terminal en la raíz del proyecto y ejecuta:
+        ```sh
+        docker build -t videogame-library-backend .
+        ```
+
+3.  **Iniciar Kafka y la aplicación**:
+    -   Si tienes un `docker-compose.yml` para Kafka, asegúrate de iniciarlo primero.
+    -   Luego, ejecuta la aplicación Docker:
+        ```sh
+        docker run -p 8080:8080 videogame-library-backend
+        ```
+    -   La aplicación se iniciará en `http://localhost:8080`.
+
+### Ejecutar la Aplicación (Método Tradicional - Sin Docker)
+
+1.  **Prerrequisitos Adicionales**:
+    -   **JDK 25** o superior.
+    -   **Maven 3.8** o superior.
+    -   **Docker Compose** para ejecutar Kafka (o una instancia de Kafka local).
+
+2.  **Iniciar Kafka**:
+    -   En la raíz del proyecto, ejecuta el siguiente comando para iniciar un broker de Kafka y Zookeeper:
+        ```sh
+        docker-compose up -d
+        ```
+
+3.  **Configurar la API de IGDB y JWT**:
+    -   (Mismo paso que en la sección de Docker)
+
+4.  **Generar código y compilar**:
     ```sh
     mvn clean install
     ```
     Esto generará las clases de la API a partir de `openapi.yaml` y compilará el proyecto.
 
-4.  **Ejecutar la aplicación**:
+5.  **Ejecutar la aplicación**:
     ```sh
     mvn spring-boot:run
     ```

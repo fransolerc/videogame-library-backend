@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      # Puerto para la comunicación interna de Docker
+      - "9092:9092"
+      # Puerto expuesto al host (tu máquina) por si quieres usar una herramienta externa
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  videogame-library-backend:
+    build: .
+    container_name: videogame-library-backend
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      # Sobrescribe la propiedad de Spring para apuntar al servicio de Kafka en Docker
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
