@@ -18,11 +18,13 @@ public interface GameMapper {
     @Mapping(target = "genres", source = "genres")
     @Mapping(target = "releaseDate", source = "releaseDate")
     @Mapping(target = "summary", source = "summary")
+    @Mapping(target = "storyline", source = "storyline")
     @Mapping(target = "rating", expression = "java(mapRating(domainGame.rating()))")
     @Mapping(target = "platforms", source = "platforms")
     @Mapping(target = "coverImageUrl", source = "coverImageUrl")
     @Mapping(target = "videos", source = "videos")
     @Mapping(target = "screenshots", source = "screenshots")
+    @Mapping(target = "artworks", source = "artworks")
     GameDTO toApiGame(Game domainGame);
 
     List<GameDTO> toApiGameList(List<Game> domainGames);

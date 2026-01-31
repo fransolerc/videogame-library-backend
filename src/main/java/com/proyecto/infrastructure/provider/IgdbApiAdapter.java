@@ -3,6 +3,7 @@ package com.proyecto.infrastructure.provider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.application.port.out.PlatformProviderPort;
+import com.proyecto.domain.model.Artwork;
 import com.proyecto.domain.model.Game;
 import com.proyecto.domain.model.Platform;
 import com.proyecto.domain.model.PlatformType;
@@ -32,14 +33,14 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     private static final String HEADER_CLIENT_ID = "Client-ID";
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String FIELDS_GAME_BASE = "fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating;";
+    private static final String FIELDS_GAME_BASE = "fields name, genres.name, first_release_date, cover.image_id, artworks.*, summary, storyline, videos.video_id, screenshots.image_id, platforms.name, rating;";
 
     private final IgdbApiConfig apiConfig;
     private final RestTemplate restTemplate;
 
     private String accessToken;
     private long tokenExpirationTime;
-    
+
     private record AuthResponse(@JsonProperty("access_token") String accessToken, @JsonProperty("expires_in") long expiresIn) {}
     private record IgdbGameResponse(
             long id,
@@ -47,7 +48,9 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             List<IgdbGenreResponse> genres,
             @JsonProperty("first_release_date") Long releaseDate,
             IgdbCoverResponse cover,
+            List<Artwork> artworks,
             String summary,
+            String storyline,
             List<IgdbVideoResponse> videos,
             List<IgdbScreenshotResponse> screenshots,
             List<IgdbPlatformResponse> platforms,
@@ -228,10 +231,10 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
                 ? "https://images.igdb.com/igdb/image/upload/t_cover_big/" + igdbGame.cover().imageId() + ".jpg"
                 : PLACEHOLDER_IMAGE_URL;
 
-        List<String> videoUrls = igdbGame.videos() != null 
+        List<String> videoUrls = igdbGame.videos() != null
                 ? igdbGame.videos().stream()
                     .map(v -> "https://www.youtube.com/watch?v=" + v.videoId())
-                    .toList() 
+                    .toList()
                 : Collections.emptyList();
 
         List<String> screenshotUrls = igdbGame.screenshots() != null
@@ -245,16 +248,18 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
                 : Collections.emptyList();
 
         return new Game(
-                String.valueOf(igdbGame.id()),
+                igdbGame.id(),
                 igdbGame.name(),
                 genreNames,
                 releaseDate,
                 coverUrl,
                 igdbGame.summary(),
+                igdbGame.storyline(),
                 videoUrls,
                 screenshotUrls,
                 platformNames,
-                igdbGame.rating()
+                igdbGame.rating(),
+                igdbGame.artworks()
         );
     }
 

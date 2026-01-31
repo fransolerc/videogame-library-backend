@@ -432,6 +432,44 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    ArtworkDTO:
+      type: object
+      description: Representa una obra de arte de un juego.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: El ID de la obra de arte.
+        alpha_channel:
+          type: boolean
+          description: Indica si la imagen tiene canal alfa.
+        animated:
+          type: boolean
+          description: Indica si la imagen es animada.
+        artwork_type:
+          type: integer
+          format: int64
+          description: El tipo de obra de arte.
+        checksum:
+          type: string
+          description: El checksum de la imagen.
+        game:
+          type: integer
+          format: int64
+          description: El ID del juego asociado.
+        height:
+          type: integer
+          description: La altura de la imagen en píxeles.
+        image_id:
+          type: string
+          description: El ID de la imagen en los servidores de IGDB.
+        url:
+          type: string
+          format: uri
+          description: La URL de la imagen.
+        width:
+          type: integer
+          description: El ancho de la imagen en píxeles.
     GameDTO:
       type: object
       description: Representa los datos de un videojuego obtenidos de la API externa.
@@ -466,6 +504,10 @@ components:
           type: string
           description: Resumen detallado del juego.
           maxLength: 4096
+        storyline:
+          type: string
+          description: A short description of a games story.
+          maxLength: 4096
         videos:
           type: array
           items:
@@ -495,6 +537,10 @@ components:
           description: Puntuación media de los usuarios (0-100).
           minimum: 0
           maximum: 100
+        artworks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtworkDTO'
 
     PlatformDTO:
       type: object
