@@ -7,6 +7,8 @@ import com.proyecto.domain.model.Game;
 import com.proyecto.domain.model.Platform;
 import com.proyecto.domain.model.PlatformType;
 import com.proyecto.infrastructure.config.IgdbApiConfig;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -33,6 +35,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String FIELDS_GAME_BASE = "fields name, genres.name, first_release_date, cover.image_id, summary, videos.video_id, screenshots.image_id, platforms.name, rating;";
+    private static final String IGDB_SERVICE = "igdbService";
 
     private final IgdbApiConfig apiConfig;
     private final RestTemplate restTemplate;
@@ -71,6 +74,8 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @CircuitBreaker(name = IGDB_SERVICE, fallbackMethod = "fallbackFindById")
+    @Retry(name = IGDB_SERVICE)
     public Optional<Game> findByExternalId(Long externalId) {
         if (isTokenInvalid()) {
             authenticate();
@@ -95,6 +100,8 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @CircuitBreaker(name = IGDB_SERVICE, fallbackMethod = "fallbackSearch")
+    @Retry(name = IGDB_SERVICE)
     public List<Game> searchByName(String name) {
         if (isTokenInvalid()) {
             authenticate();
@@ -121,6 +128,8 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @CircuitBreaker(name = IGDB_SERVICE, fallbackMethod = "fallbackFilter")
+    @Retry(name = IGDB_SERVICE)
     public List<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
         if (isTokenInvalid()) {
             authenticate();
@@ -160,6 +169,8 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @CircuitBreaker(name = IGDB_SERVICE, fallbackMethod = "fallbackListPlatforms")
+    @Retry(name = IGDB_SERVICE)
     public List<Platform> listPlatforms() {
         if (isTokenInvalid()) {
             authenticate();
@@ -265,5 +276,25 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
                 igdbPlatform.generation(),
                 PlatformType.fromValue(igdbPlatform.platformType())
         );
+    }
+
+    private Optional<Game> fallbackFindById(Long externalId, Throwable t) {
+        logger.warn("Fallback for findByExternalId due to: {}", t.getMessage());
+        return Optional.empty();
+    }
+
+    private List<Game> fallbackSearch(String name, Throwable t) {
+        logger.warn("Fallback for searchByName due to: {}", t.getMessage());
+        return Collections.emptyList();
+    }
+
+    private List<Game> fallbackFilter(String filter, String sort, Integer limit, Integer offset, Throwable t) {
+        logger.warn("Fallback for filterGames due to: {}", t.getMessage());
+        return Collections.emptyList();
+    }
+
+    private List<Platform> fallbackListPlatforms(Throwable t) {
+        logger.warn("Fallback for listPlatforms due to: {}", t.getMessage());
+        return Collections.emptyList();
     }
 }
