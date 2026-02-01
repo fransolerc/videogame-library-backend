@@ -6,6 +6,7 @@ import com.proyecto.infrastructure.adapter.in.web.mapper.GameMapper;
 import com.proyecto.videogames.generated.api.GamesApi;
 import com.proyecto.videogames.generated.model.GameDTO;
 import com.proyecto.videogames.generated.model.GameFilterRequestDTO;
+import com.proyecto.videogames.generated.model.GameSummaryDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,9 +26,9 @@ public class GameController implements GamesApi {
     }
 
     @Override
-    public ResponseEntity<List<GameDTO>> searchGamesByName(String name) {
+    public ResponseEntity<List<GameSummaryDTO>> searchGamesByName(String name) {
         List<Game> domainGames = gameUseCase.searchGamesByName(name);
-        return ResponseEntity.ok(gameMapper.toApiGameList(domainGames));
+        return ResponseEntity.ok(gameMapper.toApiGameSummaryList(domainGames));
     }
 
     @Override
@@ -39,13 +40,13 @@ public class GameController implements GamesApi {
     }
 
     @Override
-    public ResponseEntity<List<GameDTO>> filterGames(@Valid @RequestBody GameFilterRequestDTO gameFilterRequest) {
+    public ResponseEntity<List<GameSummaryDTO>> filterGames(@Valid @RequestBody GameFilterRequestDTO gameFilterRequest) {
         List<Game> domainGames = gameUseCase.filterGames(
                 gameFilterRequest.getFilter(),
                 gameFilterRequest.getSort(),
                 gameFilterRequest.getLimit(),
                 gameFilterRequest.getOffset()
         );
-        return ResponseEntity.ok(gameMapper.toApiGameList(domainGames));
+        return ResponseEntity.ok(gameMapper.toApiGameSummaryList(domainGames));
     }
 }
