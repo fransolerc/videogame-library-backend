@@ -1,5 +1,6 @@
 package com.proyecto.application.service;
 
+import com.proyecto.application.port.out.FavoriteGameEventPort;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.application.port.out.LibraryRepositoryPort;
 import com.proyecto.application.port.out.UserRepositoryPort;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,6 +43,8 @@ class LibraryServiceUnitTest {
     private GameProviderPort gameProviderPort;
     @Mock
     private UserRepositoryPort userRepositoryPort;
+    @Mock
+    private FavoriteGameEventPort favoriteGameEventPort;
     @Mock
     private SecurityContext securityContext;
     @Mock
@@ -177,24 +181,32 @@ class LibraryServiceUnitTest {
         @Test
         void addGameToFavorites_shouldCreateEntry_whenNotInLibrary() {
             when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
+            when(libraryRepositoryPort.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
 
             libraryService.addGameToFavorites(userId, gameId);
 
-            verify(libraryRepositoryPort).save(argThat(game ->
-                    game.status() == GameStatus.NONE && game.isFavorite()
-            ));
+            ArgumentCaptor<UserGame> captor = ArgumentCaptor.forClass(UserGame.class);
+            verify(libraryRepositoryPort).save(captor.capture());
+            UserGame capturedGame = captor.getValue();
+
+            assertEquals(GameStatus.NONE, capturedGame.status());
+            assertTrue(capturedGame.isFavorite());
         }
 
         @Test
         void addGameToFavorites_shouldUpdateEntry_whenInLibrary() {
             UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), false);
             when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
 
             libraryService.addGameToFavorites(userId, gameId);
 
-            verify(libraryRepositoryPort).update(argThat(game ->
-                    game.status() == GameStatus.PLAYING && game.isFavorite()
-            ));
+            ArgumentCaptor<UserGame> captor = ArgumentCaptor.forClass(UserGame.class);
+            verify(libraryRepositoryPort).update(captor.capture());
+            UserGame capturedGame = captor.getValue();
+
+            assertEquals(GameStatus.PLAYING, capturedGame.status());
+            assertTrue(capturedGame.isFavorite());
         }
 
         @Test
@@ -211,12 +223,16 @@ class LibraryServiceUnitTest {
         void removeGameFromFavorites_shouldUpdateEntry_whenStatusIsNotNone() {
             UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), true);
             when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
 
             libraryService.removeGameFromFavorites(userId, gameId);
 
-            verify(libraryRepositoryPort).update(argThat(game ->
-                    game.status() == GameStatus.PLAYING && !game.isFavorite()
-            ));
+            ArgumentCaptor<UserGame> captor = ArgumentCaptor.forClass(UserGame.class);
+            verify(libraryRepositoryPort).update(captor.capture());
+            UserGame capturedGame = captor.getValue();
+
+            assertEquals(GameStatus.PLAYING, capturedGame.status());
+            assertFalse(capturedGame.isFavorite());
         }
     }
 
