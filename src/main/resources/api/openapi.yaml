@@ -49,7 +49,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/GameDTO'
+                  $ref: '#/components/schemas/GameSummaryDTO'
         '400':
           description: Parámetro 'name' no proporcionado
 
@@ -76,7 +76,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/GameDTO'
+                  $ref: '#/components/schemas/GameSummaryDTO'
         '400':
           description: Solicitud de filtrado inválida
 
@@ -470,6 +470,42 @@ components:
         width:
           type: integer
           description: El ancho de la imagen en píxeles.
+    GameSummaryDTO:
+      type: object
+      description: Representa un resumen de los datos de un videojuego.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: El ID del juego (de IGDB).
+          minimum: 1
+        name:
+          type: string
+          description: El nombre del juego.
+          maxLength: 255
+        platforms:
+          type: array
+          items:
+            type: string
+            maxLength: 255
+          description: Lista de plataformas disponibles.
+          maxItems: 50
+        releaseDate:
+          type: string
+          format: date
+          description: Fecha de lanzamiento.
+          maxLength: 10
+        coverImageUrl:
+          type: string
+          format: uri
+          description: URL de la imagen de portada.
+          maxLength: 2048
+        rating:
+          type: number
+          format: double
+          description: Puntuación media de los usuarios (0-100).
+          minimum: 0
+          maximum: 100
     GameDTO:
       type: object
       description: Representa los datos de un videojuego obtenidos de la API externa.
@@ -523,13 +559,6 @@ components:
             format: uri
             maxLength: 2048
           description: Lista de URLs de capturas de pantalla.
-          maxItems: 50
-        platforms:
-          type: array
-          items:
-            type: string
-            maxLength: 255
-          description: Lista de plataformas disponibles.
           maxItems: 50
         rating:
           type: number
