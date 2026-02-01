@@ -10,6 +10,7 @@ import com.proyecto.domain.model.PlatformType;
 import com.proyecto.infrastructure.config.IgdbApiConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -74,6 +75,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @Cacheable("igdb-game-by-id")
     public Optional<Game> findByExternalId(Long externalId) {
         if (isTokenInvalid()) {
             authenticate();
@@ -98,6 +100,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @Cacheable("igdb-games-by-name")
     public List<Game> searchByName(String name) {
         if (isTokenInvalid()) {
             authenticate();
@@ -124,6 +127,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @Cacheable("igdb-games-by-filter")
     public List<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
         if (isTokenInvalid()) {
             authenticate();
@@ -163,6 +167,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     @Override
+    @Cacheable("igdb-platforms")
     public List<Platform> listPlatforms() {
         if (isTokenInvalid()) {
             authenticate();
