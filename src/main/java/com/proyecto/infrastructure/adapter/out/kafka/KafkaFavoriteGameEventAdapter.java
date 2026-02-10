@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import java.util.concurrent.CompletableFuture;
 
@@ -23,6 +24,7 @@ public class KafkaFavoriteGameEventAdapter implements FavoriteGameEventPort {
     }
 
     @Override
+    @Async
     public void publishFavoriteGameEvent(FavoriteGameEvent event) {
         try {
             logger.info("Attempting to publish favorite game event to topic '{}' for user {}", favoriteGamesTopic, event.userId());
