@@ -700,6 +700,30 @@ components:
           type: boolean
           description: Indica si el juego está marcado como favorito.
 
+    PageableDTO:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+          minimum: 0
+        pageSize:
+          type: integer
+          minimum: 1
+        sort:
+          $ref: '#/components/schemas/SortDTO'
+      description: Información sobre la paginación.
+
+    SortDTO:
+      type: object
+      properties:
+        sorted:
+          type: boolean
+        unsorted:
+          type: boolean
+        empty:
+          type: boolean
+      description: Información sobre la ordenación.
+
     UserGamePageDTO:
       type: object
       description: Representa una página de resultados para las entradas de la biblioteca de un usuario.
@@ -710,24 +734,7 @@ components:
             $ref: '#/components/schemas/UserGameDTO'
           maxItems: 100
         pageable:
-          type: object
-          properties:
-            pageNumber:
-              type: integer
-              minimum: 0
-            pageSize:
-              type: integer
-              minimum: 1
-            sort:
-              type: object
-              properties:
-                sorted:
-                  type: boolean
-                unsorted:
-                  type: boolean
-                empty:
-                  type: boolean
-              description: Información sobre la paginación.
+          $ref: '#/components/schemas/PageableDTO'
         totalPages:
           type: integer
           minimum: 0
@@ -752,15 +759,7 @@ components:
           minimum: 0
           description: El número de la página actual.
         sort:
-          type: object
-          properties:
-            sorted:
-              type: boolean
-            unsorted:
-              type: boolean
-            empty:
-              type: boolean
-          description: Información sobre la ordenación.
+          $ref: '#/components/schemas/SortDTO'
         numberOfElements:
           type: integer
           minimum: 0

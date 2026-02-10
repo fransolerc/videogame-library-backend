@@ -2,19 +2,19 @@ package com.proyecto.infrastructure.adapter.in.web.mapper;
 
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.UserGame;
+import com.proyecto.infrastructure.adapter.in.web.mapper.util.MappingUtils;
 import com.proyecto.videogames.generated.model.GameStatusDTO;
+import com.proyecto.videogames.generated.model.PageableDTO;
+import com.proyecto.videogames.generated.model.SortDTO;
 import com.proyecto.videogames.generated.model.UserGameDTO;
 import com.proyecto.videogames.generated.model.UserGamePageDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
 
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = MappingUtils.class)
 public interface UserGameMapper {
 
     @Mapping(target = "userId", source = "userId")
@@ -44,10 +44,24 @@ public interface UserGameMapper {
         pageDTO.setLast(page.isLast());
         pageDTO.setNumberOfElements(page.getNumberOfElements());
         pageDTO.setEmpty(page.isEmpty());
-        return pageDTO;
-    }
 
-    default OffsetDateTime map(LocalDateTime value) {
-        return value != null ? value.atOffset(ZoneOffset.UTC) : null;
+        PageableDTO pageableDTO = new PageableDTO();
+        pageableDTO.setPageNumber(page.getPageable().getPageNumber());
+        pageableDTO.setPageSize(page.getPageable().getPageSize());
+
+        SortDTO pageableSortDTO = new SortDTO();
+        pageableSortDTO.setSorted(page.getPageable().getSort().isSorted());
+        pageableSortDTO.setUnsorted(page.getPageable().getSort().isUnsorted());
+        pageableSortDTO.setEmpty(page.getPageable().getSort().isEmpty());
+        pageableDTO.setSort(pageableSortDTO);
+        pageDTO.setPageable(pageableDTO);
+
+        SortDTO topLevelSortDTO = new SortDTO();
+        topLevelSortDTO.setSorted(page.getSort().isSorted());
+        topLevelSortDTO.setUnsorted(page.getSort().isUnsorted());
+        topLevelSortDTO.setEmpty(page.getSort().isEmpty());
+        pageDTO.setSort(topLevelSortDTO);
+
+        return pageDTO;
     }
 }
