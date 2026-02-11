@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
@@ -109,6 +110,46 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    @Cacheable("igdb-games-by-ids")
+    public List<Game> findMultipleByExternalIds(List<Long> externalIds) {
+        if (externalIds == null || externalIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        try {
+            rateLimiter.asBlocking().consume(1);
+        } catch (InterruptedException e) {
+            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
+            Thread.currentThread().interrupt();
+            return Collections.emptyList();
+        }
+
+        if (isTokenInvalid()) {
+            authenticate();
+        }
+
+        HttpHeaders headers = createHeaders();
+        String ids = externalIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        String requestBody = String.format("%s where id = (%s); limit %d;", FIELDS_GAME_BASE, ids, externalIds.size());
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + GAMES_URL, entity, IgdbGameResponse[].class);
+            IgdbGameResponse[] responseBody = response.getBody();
+
+            if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
+                return Arrays.stream(responseBody)
+                        .map(this::mapToDomain)
+                        .toList();
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching games with ids {} from IGDB", ids, e);
+        }
+
+        return Collections.emptyList();
     }
 
     @Override
