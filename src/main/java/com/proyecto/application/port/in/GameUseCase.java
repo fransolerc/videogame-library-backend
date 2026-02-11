@@ -10,5 +10,7 @@ public interface GameUseCase {
 
     Optional<Game> getGameById(Long id);
 
+    List<Game> getGamesByIds(List<Long> ids);
+
     List<Game> filterGames(String filter, String sort, Integer limit, Integer offset);
 }

@@ -26,27 +26,33 @@ public class GameController implements GamesApi {
     }
 
     @Override
-    public ResponseEntity<List<GameSummaryDTO>> searchGamesByName(String name) {
+    public ResponseEntity<List<GameDTO>> searchGamesByName(String name) {
         List<Game> domainGames = gameUseCase.searchGamesByName(name);
-        return ResponseEntity.ok(gameMapper.toApiGameSummaryList(domainGames));
+        return ResponseEntity.ok(gameMapper.toApiGameList(domainGames));
     }
 
     @Override
-    public ResponseEntity<GameDTO> getGameById(Long id) {
+    public ResponseEntity<GameSummaryDTO> getGameById(Long id) {
         return gameUseCase.getGameById(id)
-                .map(gameMapper::toApiGame)
+                .map(gameMapper::toApiGameSummary)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @Override
-    public ResponseEntity<List<GameSummaryDTO>> filterGames(@Valid @RequestBody GameFilterRequestDTO gameFilterRequest) {
+    public ResponseEntity<List<GameDTO>> getGamesByIds(@Valid @RequestBody List<Long> ids) {
+        List<Game> domainGames = gameUseCase.getGamesByIds(ids);
+        return ResponseEntity.ok(gameMapper.toApiGameList(domainGames));
+    }
+
+    @Override
+    public ResponseEntity<List<GameDTO>> filterGames(@Valid @RequestBody GameFilterRequestDTO gameFilterRequest) {
         List<Game> domainGames = gameUseCase.filterGames(
                 gameFilterRequest.getFilter(),
                 gameFilterRequest.getSort(),
                 gameFilterRequest.getLimit(),
                 gameFilterRequest.getOffset()
         );
-        return ResponseEntity.ok(gameMapper.toApiGameSummaryList(domainGames));
+        return ResponseEntity.ok(gameMapper.toApiGameList(domainGames));
     }
 }
