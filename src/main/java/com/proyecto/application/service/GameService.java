@@ -28,6 +28,11 @@ public class GameService implements GameUseCase {
     }
 
     @Override
+    public List<Game> getGamesByIds(List<Long> ids) {
+        return gameProviderPort.findMultipleByExternalIds(ids);
+    }
+
+    @Override
     public List<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
         return gameProviderPort.filterGames(filter, sort, limit, offset);
     }

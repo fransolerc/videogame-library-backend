@@ -8,6 +8,7 @@ import com.proyecto.videogames.generated.model.PageableDTO;
 import com.proyecto.videogames.generated.model.SortDTO;
 import com.proyecto.videogames.generated.model.UserGameDTO;
 import com.proyecto.videogames.generated.model.UserGamePageDTO;
+import org.jspecify.annotations.NonNull;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
@@ -45,15 +46,7 @@ public interface UserGameMapper {
         pageDTO.setNumberOfElements(page.getNumberOfElements());
         pageDTO.setEmpty(page.isEmpty());
 
-        PageableDTO pageableDTO = new PageableDTO();
-        pageableDTO.setPageNumber(page.getPageable().getPageNumber());
-        pageableDTO.setPageSize(page.getPageable().getPageSize());
-
-        SortDTO pageableSortDTO = new SortDTO();
-        pageableSortDTO.setSorted(page.getPageable().getSort().isSorted());
-        pageableSortDTO.setUnsorted(page.getPageable().getSort().isUnsorted());
-        pageableSortDTO.setEmpty(page.getPageable().getSort().isEmpty());
-        pageableDTO.setSort(pageableSortDTO);
+        PageableDTO pageableDTO = getPageableDTO(page);
         pageDTO.setPageable(pageableDTO);
 
         SortDTO topLevelSortDTO = new SortDTO();
@@ -63,5 +56,18 @@ public interface UserGameMapper {
         pageDTO.setSort(topLevelSortDTO);
 
         return pageDTO;
+    }
+
+    private static @NonNull PageableDTO getPageableDTO(Page<UserGame> page) {
+        PageableDTO pageableDTO = new PageableDTO();
+        pageableDTO.setPageNumber(page.getPageable().getPageNumber());
+        pageableDTO.setPageSize(page.getPageable().getPageSize());
+
+        SortDTO pageableSortDTO = new SortDTO();
+        pageableSortDTO.setSorted(page.getPageable().getSort().isSorted());
+        pageableSortDTO.setUnsorted(page.getPageable().getSort().isUnsorted());
+        pageableSortDTO.setEmpty(page.getPageable().getSort().isEmpty());
+        pageableDTO.setSort(pageableSortDTO);
+        return pageableDTO;
     }
 }

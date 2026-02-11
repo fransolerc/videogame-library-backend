@@ -18,6 +18,14 @@ public interface GameProviderPort {
     Optional<Game> findByExternalId(Long externalId);
 
     /**
+     * Busca múltiples juegos por sus identificadores externos en una sola llamada.
+     *
+     * @param externalIds Una lista de IDs de juegos en el sistema del proveedor.
+     * @return Una lista de juegos que coinciden con los IDs proporcionados.
+     */
+    List<Game> findMultipleByExternalIds(List<Long> externalIds);
+
+    /**
      * Busca juegos por su nombre en el proveedor externo.
      *
      * @param name El nombre (o parte del nombre) a buscar.
