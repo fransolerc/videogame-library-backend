@@ -12,7 +12,7 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
 - **Spring Boot 4**
 - **Maven**
 - **Spring Data JPA / Hibernate**: Para la persistencia de datos.
-- **H2 Database**: Base de datos en memoria para desarrollo.
+- **H2 Database**: Base de datos en memoria para desarrollo y pruebas.
 - **OpenAPI 3 / Swagger UI**: Para la documentación y generación de la API.
 - **Arquitectura Hexagonal (Puertos y Adaptadores)**
 - **Spring Security**: Autenticación y autorización (JWT).
@@ -31,57 +31,53 @@ El objetivo es servir como un ejemplo práctico de una arquitectura de software 
 - **Docker Desktop** (o Docker Engine) instalado y en ejecución.
 - Un cliente de API como Postman, Insomnia, o simplemente tu navegador.
 
+### Configuración Obligatoria
+
+Antes de ejecutar la aplicación, debes proporcionar tus credenciales de la API de IGDB/Twitch y una clave secreta para JWT.
+
+1.  Localiza el fichero `src/main/resources/application.yml`.
+2.  Asegúrate de que las siguientes propiedades están configuradas con tus valores:
+    ```yaml
+    igdb:
+      client-id: "TU_CLIENT_ID_TWITCH"
+      client-secret: "TU_CLIENT_SECRET_TWITCH"
+    jwt:
+      secret: "una-clave-secreta-muy-larga-y-segura-que-deberias-cambiar-en-produccion" # ¡Cambia esto en producción!
+    ```
+
 ### Ejecutar con Docker
 
-1.  **Configurar la API de IGDB y JWT**:
-    -   Este proyecto requiere credenciales de la API de IGDB/Twitch.
-    -   Debes crear o actualizar tu archivo `src/main/resources/application.yml` con el siguiente contenido y tus credenciales:
-      ```yaml
-      igdb:
-        client-id: "TU_CLIENT_ID_TWITCH"
-        client-secret: "TU_CLIENT_SECRET_TWITCH"
-      jwt:
-        secret: "una-clave-secreta-muy-larga-y-segura-que-deberias-cambiar-en-produccion" # ¡Cambia esto en producción!
-      ```
-    -   **Nota**: Para que estos cambios sean efectivos en la imagen de Docker, asegúrate de que `application.yml` esté presente en `src/main/resources` antes de construir la imagen.
-
-2.  **Construir la imagen de Docker**:
+1. **Construir la imagen de Docker**:
     -   Abre una terminal en la raíz del proyecto y ejecuta:
         ```sh
         docker build -t videogame-library-backend .
         ```
 
-3.  **Iniciar Kafka y la aplicación**:
-    -   Si tienes un `docker-compose.yml` para Kafka, asegúrate de iniciarlo primero.
+2. **Iniciar Kafka y la aplicación**:
+    -   Si tienes un `docker-compose.yml` para Kafka, asegúrate de iniciarlo primero (`docker-compose up -d`).
     -   Luego, ejecuta la aplicación Docker:
         ```sh
         docker run -p 8080:8080 videogame-library-backend
         ```
     -   La aplicación se iniciará en `http://localhost:8080`.
 
-### Ejecutar la Aplicación (Método Tradicional - Sin Docker)
-
-1.  **Prerrequisitos Adicionales**:
+3. **Prerrequisitos Adicionales**:
     -   **JDK 25** o superior.
     -   **Maven 3.8** o superior.
     -   **Docker Compose** para ejecutar Kafka (o una instancia de Kafka local).
 
-2.  **Iniciar Kafka**:
+4. **Iniciar Kafka**:
     -   En la raíz del proyecto, ejecuta el siguiente comando para iniciar un broker de Kafka y Zookeeper:
         ```sh
         docker-compose up -d
         ```
 
-3.  **Configurar la API de IGDB y JWT**:
-    -   (Mismo paso que en la sección de Docker)
-
-4.  **Generar código y compilar**:
+5. **Generar código y compilar**:
     ```sh
     mvn clean install
     ```
-    Esto generará las clases de la API a partir de `openapi.yaml` y compilará el proyecto.
 
-5.  **Ejecutar la aplicación**:
+6. **Ejecutar la aplicación**:
     ```sh
     mvn spring-boot:run
     ```
@@ -94,36 +90,40 @@ La aplicación se iniciará en `http://localhost:8080`.
 
 La documentación completa de la API está disponible en **[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)** una vez que la aplicación está en marcha.
 
-**Importante**: Todos los endpoints están prefijados con `/api/v1`.
+### Autenticación y Estado
 
-### Autenticación
-
-| Método | Endpoint                 | Descripción                                                                                                          |
-|:-------|:-------------------------|:---------------------------------------------------------------------------------------------------------------------|
-| `POST` | `/api/v1/users/register` | Registra un nuevo usuario. La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número. |
-| `POST` | `/api/v1/users/login`    | Inicia sesión y devuelve un token JWT, `userId` y `username`.                                                        |
+| Método | Endpoint          | Descripción                                                                                                          |
+|:-------|:------------------|:---------------------------------------------------------------------------------------------------------------------|
+| `POST` | `/users/register` | Registra un nuevo usuario. La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número. |
+| `POST` | `/users/login`    | Inicia sesión y devuelve un token JWT, `userId` y `username`.                                                        |
+| `GET`  | `/health`         | Comprueba el estado de la aplicación. Devuelve `{"status": "UP"}` si todo está correcto.                             |
 
 ### Búsqueda de Juegos
 
-| Método | Endpoint               | Descripción                                                         |
-|:-------|:-----------------------|:--------------------------------------------------------------------|
-| `GET`  | `/api/v1/games/search` | Busca videojuegos por nombre. (Ej: `?name=Zelda`)                   |
-| `GET`  | `/api/v1/games/{id}`   | Obtiene los detalles completos de un videojuego por su ID de IGDB.  |
-| `POST` | `/api/v1/games/filter` | Realiza una búsqueda avanzada con filtros, ordenación y paginación. |
-| `GET`  | `/api/v1/platforms`    | Lista todas las plataformas de videojuegos disponibles.             |
+| Método | Endpoint        | Descripción                                                                           |
+|:-------|:----------------|:--------------------------------------------------------------------------------------|
+| `GET`  | `/games/search` | Busca videojuegos por nombre. (Ej: `?name=Zelda`)                                     |
+| `GET`  | `/games/{id}`   | Obtiene los detalles completos de un videojuego por su ID de IGDB.                    |
+| `POST` | `/games/filter` | Realiza una búsqueda avanzada con filtros, ordenación y paginación.                   |
+| `POST` | `/games/batch`  | Obtiene los detalles completos de múltiples videojuegos a partir de una lista de IDs. |
+
+### Plataformas
+
+| Método | Endpoint     | Descripción                                             |
+|:-------|:-------------|:--------------------------------------------------------|
+| `GET`  | `/platforms` | Lista todas las plataformas de videojuegos disponibles. |
 
 ### Biblioteca de Usuario
 
-| Método   | Endpoint                                         | Descripción                                                                                                                          |
-|:---------|:-------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|
-| `GET`    | `/api/v1/users/{userId}/games`                   | Lista todos los juegos en la biblioteca de un usuario.                                                                               |
-| `GET`    | `/api/v1/users/{userId}/games/{gameId}`          | Obtiene el estado de un juego específico en la biblioteca del usuario.                                                               |
-| `PUT`    | `/api/v1/users/{userId}/games/{gameId}`          | Añade un juego a la biblioteca o actualiza su estado. Si el estado es `NONE` y no es favorito, se elimina.                           |
-| `DELETE` | `/api/v1/users/{userId}/games/{gameId}`          | Elimina un juego de la biblioteca de un usuario (borrado completo).                                                                  |
-| `POST`   | `/api/v1/users/{userId}/games/{gameId}/favorite` | Marca un juego como favorito. Si no está en la biblioteca, lo añade con estado `NONE`. Devuelve el recurso actualizado.              |
-| `DELETE` | `/api/v1/users/{userId}/games/{gameId}/favorite` | Quita un juego de favoritos. Si el estado del juego es `NONE`, se elimina por completo de la biblioteca.                             |
-| `GET`    | `/api/v1/users/{userId}/favorites`               | Lista todos los juegos favoritos de un usuario (paginado).                                                                           |
-| `GET`    | `/api/v1/users/{userId}/favorites/analysis`      | **(Experimental)** Obtiene un análisis de los juegos favoritos de un usuario, generado por un servicio de IA (actualmente simulado). |
+| Método   | Endpoint                                   | Descripción                                                                                                                          |
+|:---------|:-------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| `GET`    | `/users/{userId}/games`                    | Lista todos los juegos en la biblioteca de un usuario.                                                                               |
+| `GET`    | `/users/{userId}/games/{gameId}`           | Obtiene el estado de un juego específico en la biblioteca del usuario.                                                               |
+| `PUT`    | `/users/{userId}/games/{gameId}`           | Añade un juego a la biblioteca o actualiza su estado. Si el estado es `NONE` y no es favorito, se elimina.                           |
+| `DELETE` | `/users/{userId}/games/{gameId}`           | Elimina un juego de la biblioteca de un usuario (borrado completo).                                                                  |
+| `POST`   | `/users/{userId}/games/{gameId}/favorite`  | Marca un juego como favorito. Si no está en la biblioteca, lo añade con estado `NONE`. Devuelve el recurso actualizado.              |
+| `DELETE` | `/users/{userId}/games/{gameId}/favorite`  | Quita un juego de favoritos. Si el estado del juego es `NONE`, se elimina por completo de la biblioteca.                             |
+| `GET`    | `/users/{userId}/favorites`                | Lista todos los juegos favoritos de un usuario (paginado).                                                                           |
 
 ---
 
@@ -132,7 +132,7 @@ La documentación completa de la API está disponible en **[http://localhost:808
 El proyecto tiene una alta cobertura de pruebas, incluyendo:
 
 -   **Pruebas Unitarias**: Para los servicios de aplicación y lógica de dominio.
--   **Pruebas de Integración**: Para los controladores REST, utilizando **WireMock** para simular la API externa de IGDB.
+-   **Pruebas de Integración**: Para los controladores REST y la interacción con la base de datos.
 
 Para ejecutar todas las pruebas, usa el siguiente comando de Maven:
 
