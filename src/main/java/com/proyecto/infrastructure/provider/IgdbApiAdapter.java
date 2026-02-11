@@ -340,15 +340,15 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
         return new Game(
                 igdbGame.id(),
                 igdbGame.name(),
-                genreNames,
-                releaseDate,
-                coverUrl,
                 igdbGame.summary(),
                 igdbGame.storyline(),
+                releaseDate,
+                igdbGame.rating(),
+                coverUrl,
+                platformNames,
+                genreNames,
                 videoUrls,
                 screenshotUrls,
-                platformNames,
-                igdbGame.rating(),
                 igdbGame.artworks()
         );
     }
