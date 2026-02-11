@@ -19,11 +19,33 @@ tags:
     description: Operaciones relacionadas con usuarios
   - name: Library
     description: Operaciones relacionadas con la biblioteca de juegos de un usuario
+  - name: Health
+    description: Operaciones relacionadas con el estado de la aplicación
 
 security:
   - bearerAuth: []
 
 paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Comprobar el estado de la aplicación
+      description: >
+        Devuelve un mensaje simple para indicar que la aplicación está funcionando.
+      operationId: healthCheck
+      security: [] # Endpoint público
+      responses:
+        '200':
+          description: La aplicación está funcionando
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "UP"
   /games/search:
     get:
       tags:
