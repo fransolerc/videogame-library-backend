@@ -532,6 +532,22 @@ components:
           type: string
           description: El nombre del juego.
           maxLength: 255
+        releaseDate:
+          type: string
+          format: date
+          description: Fecha de lanzamiento.
+          maxLength: 10
+        rating:
+          type: number
+          format: double
+          description: Puntuación media de los usuarios (0-100).
+          minimum: 0
+          maximum: 100
+        coverImageUrl:
+          type: string
+          format: uri
+          description: URL de la imagen de portada.
+          maxLength: 2048
         platforms:
           type: array
           items:
@@ -539,22 +555,6 @@ components:
             maxLength: 255
           description: Lista de plataformas disponibles.
           maxItems: 50
-        releaseDate:
-          type: string
-          format: date
-          description: Fecha de lanzamiento.
-          maxLength: 10
-        coverImageUrl:
-          type: string
-          format: uri
-          description: URL de la imagen de portada.
-          maxLength: 2048
-        rating:
-          type: number
-          format: double
-          description: Puntuación media de los usuarios (0-100).
-          minimum: 0
-          maximum: 100
     GameSummaryDTO:
       type: object
       description: Representa los datos completos de un videojuego, extendiendo los datos mínimos.
@@ -562,6 +562,14 @@ components:
         - $ref: '#/components/schemas/GameDTO'
         - type: object
           properties:
+            summary:
+              type: string
+              description: Resumen detallado del juego.
+              maxLength: 4096
+            storyline:
+              type: string
+              description: A short description of a games story.
+              maxLength: 4096
             platforms:
               type: array
               items:
@@ -576,14 +584,6 @@ components:
                 maxLength: 255
               description: Lista de géneros del juego.
               maxItems: 50
-            summary:
-              type: string
-              description: Resumen detallado del juego.
-              maxLength: 4096
-            storyline:
-              type: string
-              description: A short description of a games story.
-              maxLength: 4096
             videos:
               type: array
               items:
