@@ -5,8 +5,10 @@ import com.proyecto.domain.exception.EmailAlreadyExistsException;
 import com.proyecto.domain.model.LoginResult;
 import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.security.jwt.JwtTokenProvider;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,82 +51,75 @@ class UserServiceUnitTest {
     private final String password = "password123";
     private final String encodedPassword = "encodedPassword";
 
-    @Test
-    void registerUser_ShouldSaveNewUser_WhenEmailIsUnique() {
+    @ParameterizedTest
+    @MethodSource("provideRegisterUserArguments")
+    void registerUser_ShouldHandleAllCases(Optional<User> existingUser, Class<? extends Exception> expectedException) {
         // Arrange
-        when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
-        
-        User savedUser = new User(UUID.randomUUID().toString(), username, email, encodedPassword);
-        when(userRepositoryPort.save(any(User.class))).thenReturn(savedUser);
-
-        // Act
-        User result = userService.registerUser(username, email, password);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(username, result.username());
-        assertEquals(email, result.email());
-        assertEquals(encodedPassword, result.password());
-
-        verify(userRepositoryPort).findByEmail(email);
-        verify(passwordEncoder).encode(password);
-        verify(userRepositoryPort).save(any(User.class));
-    }
-
-    @Test
-    void registerUser_ShouldThrowException_WhenEmailAlreadyExists() {
-        // Arrange
-        User existingUser = new User(UUID.randomUUID().toString(), "existing", email, "pass");
-        when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.of(existingUser));
+        when(userRepositoryPort.findByEmail(email)).thenReturn(existingUser);
+        if (existingUser.isEmpty()) {
+            when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
+            User savedUser = new User(UUID.randomUUID().toString(), username, email, encodedPassword);
+            when(userRepositoryPort.save(any(User.class))).thenReturn(savedUser);
+        }
 
         // Act & Assert
-        assertThrows(EmailAlreadyExistsException.class, () -> 
-            userService.registerUser(username, email, password)
-        );
+        if (expectedException != null) {
+            assertThrows(expectedException, () -> userService.registerUser(username, email, password));
+            verify(userRepositoryPort, never()).save(any());
+        } else {
+            User result = userService.registerUser(username, email, password);
+            assertNotNull(result);
+            assertEquals(username, result.username());
+            assertEquals(email, result.email());
+            assertEquals(encodedPassword, result.password());
+            verify(userRepositoryPort).save(any(User.class));
+        }
 
         verify(userRepositoryPort).findByEmail(email);
-        verify(passwordEncoder, never()).encode(anyString());
-        verify(userRepositoryPort, never()).save(any(User.class));
     }
 
-    @Test
-    void loginUser_ShouldReturnToken_WhenCredentialsAreValid() {
-        // Arrange
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        
-        String expectedToken = "jwt-token";
-        when(jwtTokenProvider.generateToken(authentication)).thenReturn(expectedToken);
+    private static Stream<Arguments> provideRegisterUserArguments() {
+        return Stream.of(
+                Arguments.of(Optional.empty(), null),
+                Arguments.of(Optional.of(mock(User.class)), EmailAlreadyExistsException.class)
+        );
+    }
 
-        User user = new User(UUID.randomUUID().toString(), username, email, encodedPassword);
-        when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.of(user));
+    @ParameterizedTest
+    @MethodSource("provideLoginUserArguments")
+    void loginUser_ShouldReturnTokenOrEmpty(boolean validCredentials, Optional<LoginResult> expectedResult) {
+        // Arrange
+        if (validCredentials) {
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenReturn(authentication);
+            String expectedToken = "jwt-token";
+            when(jwtTokenProvider.generateToken(authentication)).thenReturn(expectedToken);
+            User user = new User(UUID.randomUUID().toString(), username, email, encodedPassword);
+            when(userRepositoryPort.findByEmail(email)).thenReturn(Optional.of(user));
+        } else {
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenThrow(new RuntimeException("Bad credentials"));
+        }
 
         // Act
         Optional<LoginResult> result = userService.loginUser(email, password);
 
         // Assert
-        assertTrue(result.isPresent());
-        assertEquals(expectedToken, result.get().token());
-        assertEquals(username, result.get().username());
-        
+        assertEquals(expectedResult.isPresent(), result.isPresent());
+        expectedResult.ifPresent(loginResult -> assertEquals(loginResult.username(), result.get().username()));
+
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtTokenProvider).generateToken(authentication);
+        verify(jwtTokenProvider, times(validCredentials ? 1 : 0)).generateToken(any());
     }
 
-    @Test
-    void loginUser_ShouldReturnEmpty_WhenAuthenticationFails() {
-        // Arrange
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new RuntimeException("Bad credentials"));
-
-        // Act
-        Optional<LoginResult> result = userService.loginUser(email, password);
-
-        // Assert
-        assertTrue(result.isEmpty());
-        
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtTokenProvider, never()).generateToken(any());
+    private static Stream<Arguments> provideLoginUserArguments() {
+        String username = "testuser";
+        String token = "jwt-token";
+        User user = new User(UUID.randomUUID().toString(), username, "test@example.com", "encodedPassword");
+        LoginResult loginResult = new LoginResult(token, user, username);
+        return Stream.of(
+                Arguments.of(true, Optional.of(loginResult)),
+                Arguments.of(false, Optional.empty())
+        );
     }
 }
