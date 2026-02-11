@@ -112,6 +112,19 @@ class LibraryControllerIntegrationTest {
     }
 
     @Test
+    void shouldReturn204WhenRemovingFavorite() throws Exception {
+        // First, add the game to favorites
+        mockMvc.perform(post("/users/{userId}/games/{gameId}/favorite", userId, 1L)
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk());
+
+        // Then, remove it
+        mockMvc.perform(delete("/users/{userId}/games/{gameId}/favorite", userId, 1L)
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void shouldReturnEmptyPageWhenListingFavoritesForNewUser() throws Exception {
         mockMvc.perform(get("/users/{userId}/favorites", userId)
                         .header("Authorization", "Bearer " + jwtToken))

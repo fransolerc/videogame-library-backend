@@ -13,7 +13,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,7 +69,10 @@ class LibraryServiceUnitTest {
         lenient().when(authentication.getPrincipal()).thenReturn(userDetails);
         lenient().when(userDetails.getUsername()).thenReturn(userEmail);
         lenient().when(gameProviderPort.findByExternalId(anyLong())).thenReturn(Optional.of(mock(Game.class)));
-        mockUser(userId);
+        
+        User user = new User(userId.toString(), "testuser", userEmail, "password");
+        lenient().when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.of(user));
+        
         SecurityContextHolder.setContext(securityContext);
     }
 
@@ -80,18 +86,22 @@ class LibraryServiceUnitTest {
             verify(libraryRepositoryPort).findByUserId(userId.toString());
         }
 
-        @Test
-        void getUserGameStatus_shouldReturnUserGame_whenFound() {
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(mock(UserGame.class)));
+        @ParameterizedTest
+        @MethodSource("provideUserGame")
+        void getUserGameStatus_shouldReturnCorrectOptional(UserGame game) {
+            Optional<UserGame> expectedOptional = Optional.ofNullable(game);
+            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(expectedOptional);
+            
             Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
-            assertTrue(result.isPresent());
+            
+            assertEquals(expectedOptional, result);
         }
 
-        @Test
-        void getUserGameStatus_shouldReturnEmpty_whenNotFound() {
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
-            Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
-            assertTrue(result.isEmpty());
+        private static Stream<Arguments> provideUserGame() {
+            return Stream.of(
+                    Arguments.of(mock(UserGame.class)),
+                    Arguments.of((UserGame) null)
+            );
         }
 
         @Test
@@ -103,8 +113,9 @@ class LibraryServiceUnitTest {
         @Test
         void listFavoriteGames_shouldReturnPageOfGames() {
             PageRequest pageable = PageRequest.of(0, 20);
+            Page<UserGame> page = new PageImpl<>(List.of(mock(UserGame.class)));
             when(libraryRepositoryPort.findByUserIdAndIsFavoriteTrue(userId.toString(), pageable))
-                    .thenReturn(new PageImpl<>(List.of(mock(UserGame.class))));
+                    .thenReturn(page);
 
             Page<UserGame> result = libraryService.listFavoriteGames(userId, pageable);
 
@@ -113,134 +124,129 @@ class LibraryServiceUnitTest {
         }
     }
 
-    @Nested
-    class UpsertGameInLibraryTests {
-        @Test
-        void shouldCreateEntry_whenGameNotInLibrary() {
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
+    @ParameterizedTest
+    @MethodSource("provideUpsertGameInLibraryArguments")
+    void upsertGameInLibrary_shouldHandleAllCases(UserGame existingEntry, GameStatus newStatus,
+                                                  Class<? extends Exception> expectedException,
+                                                  Optional<GameStatus> expectedFinalStatus,
+                                                  boolean shouldSave, boolean shouldUpdate, boolean shouldDelete) {
+        // Arrange
+        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.ofNullable(existingEntry));
+        
+        if (shouldSave) {
             when(libraryRepositoryPort.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
-
-            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.PLAYING);
-
-            assertTrue(result.isPresent());
-            assertEquals(GameStatus.PLAYING, result.get().status());
-            verify(libraryRepositoryPort).save(any(UserGame.class));
         }
-
-        @Test
-        void shouldNotCreateEntry_whenStatusIsNoneAndGameNotInLibrary() {
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
-
-            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.NONE);
-
-            assertTrue(result.isEmpty());
-            verify(libraryRepositoryPort, never()).save(any(UserGame.class));
-        }
-
-        @Test
-        void shouldUpdateEntry_whenGameInLibrary() {
-            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.WANT_TO_PLAY, LocalDateTime.now(), false);
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+        if (shouldUpdate) {
             when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
-
-            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.COMPLETED);
-
-            assertTrue(result.isPresent());
-            assertEquals(GameStatus.COMPLETED, result.get().status());
-            verify(libraryRepositoryPort).update(any(UserGame.class));
         }
 
-        @Test
-        void shouldDeleteEntry_whenStatusIsNoneAndNotFavorite() {
-            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), false);
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
-
-            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.NONE);
-
-            assertTrue(result.isEmpty());
-            verify(libraryRepositoryPort).deleteByUserIdAndGameId(userId.toString(), gameId);
+        // Act & Assert
+        if (expectedException != null) {
+            assertThrows(expectedException, () -> libraryService.upsertGameInLibrary(userId, gameId, newStatus));
+        } else {
+            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, newStatus);
+            if (expectedFinalStatus.isPresent()) {
+                assertTrue(result.isPresent());
+                assertEquals(expectedFinalStatus.get(), result.get().status());
+            } else {
+                assertTrue(result.isEmpty());
+            }
         }
 
-        @Test
-        void shouldNotDeleteEntry_whenStatusIsNoneButIsFavorite() {
-            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), true);
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
-            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
-
-            Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, GameStatus.NONE);
-
-            assertTrue(result.isPresent());
-            assertEquals(GameStatus.NONE, result.get().status());
-            assertTrue(result.get().isFavorite());
-            verify(libraryRepositoryPort).update(any(UserGame.class));
-        }
+        verify(libraryRepositoryPort, times(shouldSave ? 1 : 0)).save(any(UserGame.class));
+        verify(libraryRepositoryPort, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
+        verify(libraryRepositoryPort, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
     }
 
-    @Nested
-    class FavoritesTests {
-        @Test
-        void addGameToFavorites_shouldCreateEntry_whenNotInLibrary() {
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
+    private static Stream<Arguments> provideUpsertGameInLibraryArguments() {
+        UserGame existingFavorite = new UserGame(UUID.randomUUID().toString(), 456L, GameStatus.PLAYING, LocalDateTime.now(), true);
+        UserGame existingNotFavorite = new UserGame(UUID.randomUUID().toString(), 789L, GameStatus.WANT_TO_PLAY, LocalDateTime.now(), false);
+
+        return Stream.of(
+                // Create new entry
+                Arguments.of(null, GameStatus.PLAYING, null, Optional.of(GameStatus.PLAYING), true, false, false),
+                // Don't create if status is NONE
+                Arguments.of(null, GameStatus.NONE, null, Optional.empty(), false, false, false),
+                // Update existing entry
+                Arguments.of(existingNotFavorite, GameStatus.COMPLETED, null, Optional.of(GameStatus.COMPLETED), false, true, false),
+                // Delete existing entry
+                Arguments.of(existingNotFavorite, GameStatus.NONE, null, Optional.empty(), false, false, true),
+                // Don't delete if favorite
+                Arguments.of(existingFavorite, GameStatus.NONE, null, Optional.of(GameStatus.NONE), false, true, false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideAddGameToFavoritesArguments")
+    void addGameToFavorites_shouldHandleAllCases(UserGame existingEntry, GameStatus expectedStatus, boolean expectedFavorite, boolean shouldSave, boolean shouldUpdate) {
+        // Arrange
+        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.ofNullable(existingEntry));
+        
+        if (shouldSave) {
             when(libraryRepositoryPort.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
-
-            libraryService.addGameToFavorites(userId, gameId);
-
-            ArgumentCaptor<UserGame> captor = ArgumentCaptor.forClass(UserGame.class);
-            verify(libraryRepositoryPort).save(captor.capture());
-            UserGame capturedGame = captor.getValue();
-
-            assertEquals(GameStatus.NONE, capturedGame.status());
-            assertTrue(capturedGame.isFavorite());
         }
-
-        @Test
-        void addGameToFavorites_shouldUpdateEntry_whenInLibrary() {
-            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), false);
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+        if (shouldUpdate) {
             when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
-
-            libraryService.addGameToFavorites(userId, gameId);
-
-            ArgumentCaptor<UserGame> captor = ArgumentCaptor.forClass(UserGame.class);
-            verify(libraryRepositoryPort).update(captor.capture());
-            UserGame capturedGame = captor.getValue();
-
-            assertEquals(GameStatus.PLAYING, capturedGame.status());
-            assertTrue(capturedGame.isFavorite());
         }
 
-        @Test
-        void removeGameFromFavorites_shouldDeleteEntry_whenStatusIsNone() {
-            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.NONE, LocalDateTime.now(), true);
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+        // Act
+        UserGame result = libraryService.addGameToFavorites(userId, gameId);
 
-            libraryService.removeGameFromFavorites(userId, gameId);
+        // Assert
+        assertNotNull(result);
+        assertEquals(expectedStatus, result.status());
+        assertEquals(expectedFavorite, result.isFavorite());
+        verify(libraryRepositoryPort, times(shouldSave ? 1 : 0)).save(any(UserGame.class));
+        verify(libraryRepositoryPort, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
+        verify(favoriteGameEventPort).publishFavoriteGameEvent(any());
+    }
 
-            verify(libraryRepositoryPort).deleteByUserIdAndGameId(userId.toString(), gameId);
-        }
+    private static Stream<Arguments> provideAddGameToFavoritesArguments() {
+        UserGame existingNotFavorite = new UserGame(UUID.randomUUID().toString(), 789L, GameStatus.PLAYING, LocalDateTime.now(), false);
 
-        @Test
-        void removeGameFromFavorites_shouldUpdateEntry_whenStatusIsNotNone() {
-            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), true);
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+        return Stream.of(
+                // Create new entry when not in library
+                Arguments.of(null, GameStatus.NONE, true, true, false),
+                // Update existing entry when in library
+                Arguments.of(existingNotFavorite, GameStatus.PLAYING, true, false, true)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideRemoveGameFromFavoritesArguments")
+    void removeGameFromFavorites_shouldHandleAllCases(UserGame existingEntry, boolean shouldDelete, boolean shouldUpdate) {
+        // Arrange
+        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existingEntry));
+        if (shouldUpdate) {
             when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
-
-            libraryService.removeGameFromFavorites(userId, gameId);
-
-            ArgumentCaptor<UserGame> captor = ArgumentCaptor.forClass(UserGame.class);
-            verify(libraryRepositoryPort).update(captor.capture());
-            UserGame capturedGame = captor.getValue();
-
-            assertEquals(GameStatus.PLAYING, capturedGame.status());
-            assertFalse(capturedGame.isFavorite());
         }
+
+        // Act
+        libraryService.removeGameFromFavorites(userId, gameId);
+
+        // Assert
+        verify(libraryRepositoryPort, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
+        verify(libraryRepositoryPort, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
+    }
+
+    private static Stream<Arguments> provideRemoveGameFromFavoritesArguments() {
+        UserGame existingNoneStatus = new UserGame(UUID.randomUUID().toString(), 456L, GameStatus.NONE, LocalDateTime.now(), true);
+        UserGame existingPlayingStatus = new UserGame(UUID.randomUUID().toString(), 789L, GameStatus.PLAYING, LocalDateTime.now(), true);
+
+        return Stream.of(
+                // Delete entry when status is NONE
+                Arguments.of(existingNoneStatus, true, false),
+                // Update entry when status is not NONE
+                Arguments.of(existingPlayingStatus, false, true)
+        );
     }
 
     @Nested
     class AuthorizationTests {
         @Test
         void shouldThrowException_whenUserIdsDoNotMatch() {
-            mockUser(UUID.randomUUID());
+            User user = new User(UUID.randomUUID().toString(), "testuser", userEmail, "password");
+            when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.of(user));
             assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
         }
 
@@ -277,10 +283,5 @@ class LibraryServiceUnitTest {
             assertDoesNotThrow(() -> libraryService.listUserLibrary(userId));
             verify(userRepositoryPort).findByEmail("user-principal-string");
         }
-    }
-
-    private void mockUser(UUID authenticatedUserId) {
-        User user = new User(authenticatedUserId.toString(), "testuser", userEmail, "password");
-        lenient().when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.of(user));
     }
 }
