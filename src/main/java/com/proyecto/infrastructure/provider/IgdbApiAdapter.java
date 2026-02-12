@@ -12,6 +12,9 @@ import io.github.bucket4j.Bucket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -32,6 +35,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
 
     private static final Logger logger = LoggerFactory.getLogger(IgdbApiAdapter.class);
     private static final String GAMES_URL = "/games";
+    private static final String GAMES_COUNT_URL = "/games/count";
     private static final String PLACEHOLDER_IMAGE_URL = "https://placehold.co/600x400";
     private static final String HEADER_CLIENT_ID = "Client-ID";
     private static final String HEADER_AUTHORIZATION = "Authorization";
@@ -71,6 +75,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             Integer generation,
             @JsonProperty("platform_type") Integer platformType
     ) {}
+    private record IgdbCountResponse(long count) {}
 
 
     public IgdbApiAdapter(IgdbApiConfig apiConfig, RestTemplate restTemplate, Bucket rateLimiter) {
@@ -82,17 +87,8 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     @Override
     @Cacheable("igdb-game-by-id")
     public Optional<Game> findByExternalId(Long externalId) {
-        try {
-            rateLimiter.asBlocking().consume(1);
-        } catch (InterruptedException e) {
-            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
-            Thread.currentThread().interrupt();
-            return Optional.empty();
-        }
-
-        if (isTokenInvalid()) {
-            authenticate();
-        }
+        if (rateLimiterInterrupted()) return Optional.empty();
+        ensureAuthentication();
 
         HttpHeaders headers = createHeaders();
         String requestBody = String.format("%s where id = %s;", FIELDS_GAME_BASE, externalId);
@@ -119,17 +115,8 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
             return Collections.emptyList();
         }
 
-        try {
-            rateLimiter.asBlocking().consume(1);
-        } catch (InterruptedException e) {
-            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
-            Thread.currentThread().interrupt();
-            return Collections.emptyList();
-        }
-
-        if (isTokenInvalid()) {
-            authenticate();
-        }
+        if (rateLimiterInterrupted()) return Collections.emptyList();
+        ensureAuthentication();
 
         HttpHeaders headers = createHeaders();
         String ids = externalIds.stream().map(String::valueOf).collect(Collectors.joining(","));
@@ -155,17 +142,8 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     @Override
     @Cacheable("igdb-games-by-name")
     public List<Game> searchByName(String name) {
-        try {
-            rateLimiter.asBlocking().consume(1);
-        } catch (InterruptedException e) {
-            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
-            Thread.currentThread().interrupt();
-            return Collections.emptyList();
-        }
-
-        if (isTokenInvalid()) {
-            authenticate();
-        }
+        if (rateLimiterInterrupted()) return Collections.emptyList();
+        ensureAuthentication();
 
         HttpHeaders headers = createHeaders();
         String requestBody = String.format("search \"%s\"; %s limit 50;", name, FIELDS_GAME_BASE);
@@ -189,35 +167,47 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
 
     @Override
     @Cacheable("igdb-games-by-filter")
-    public List<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
-        try {
-            rateLimiter.asBlocking().consume(1);
-        } catch (InterruptedException e) {
-            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
-            Thread.currentThread().interrupt();
-            return Collections.emptyList();
-        }
-
-        if (isTokenInvalid()) {
-            authenticate();
-        }
+    public Page<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
+        if (rateLimiterInterrupted()) return Page.empty();
+        ensureAuthentication();
 
         HttpHeaders headers = createHeaders();
-        StringBuilder requestBodyBuilder = new StringBuilder();
-        requestBodyBuilder.append(FIELDS_GAME_BASE);
-
-        if (filter != null && !filter.isEmpty()) {
-            requestBodyBuilder.append(" where ").append(filter).append(";");
+        
+        long totalElements = fetchTotalCount(filter, headers);
+        if (totalElements == 0) {
+            return Page.empty();
         }
 
-        if (sort != null && !sort.isEmpty()) {
-            requestBodyBuilder.append(" sort ").append(sort).append(";");
+        if (rateLimiterInterrupted()) return Page.empty();
+
+        List<Game> games = fetchGamesPage(filter, sort, limit, offset, headers);
+        
+        int pageSize = limit != null ? limit : 50;
+        int pageOffset = offset != null ? offset : 0;
+        int pageNumber = pageOffset / pageSize;
+
+        return new PageImpl<>(games, PageRequest.of(pageNumber, pageSize), totalElements);
+    }
+
+    private long fetchTotalCount(String filter, HttpHeaders headers) {
+        String countRequestBody = (filter != null && !filter.isEmpty()) ? "where " + filter + ";" : "";
+        HttpEntity<String> countEntity = new HttpEntity<>(countRequestBody, headers);
+
+        try {
+            ResponseEntity<IgdbCountResponse> countResponse = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + GAMES_COUNT_URL, countEntity, IgdbCountResponse.class);
+            IgdbCountResponse body = countResponse.getBody();
+            if (countResponse.getStatusCode() == HttpStatus.OK && body != null) {
+                return body.count();
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching game count with filter '{}' from IGDB", filter, e);
         }
+        return 0;
+    }
 
-        requestBodyBuilder.append(" limit ").append(limit != null ? limit : 50).append(";");
-        requestBodyBuilder.append(" offset ").append(offset != null ? offset : 0).append(";");
-
-        HttpEntity<String> entity = new HttpEntity<>(requestBodyBuilder.toString(), headers);
+    private List<Game> fetchGamesPage(String filter, String sort, Integer limit, Integer offset, HttpHeaders headers) {
+        String requestBody = buildFilterQuery(filter, sort, limit, offset);
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
             ResponseEntity<IgdbGameResponse[]> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + GAMES_URL, entity, IgdbGameResponse[].class);
@@ -231,24 +221,35 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
         } catch (Exception e) {
             logger.error("Error filtering games with filter '{}' from IGDB", filter, e);
         }
-
         return Collections.emptyList();
+    }
+
+    private String buildFilterQuery(String filter, String sort, Integer limit, Integer offset) {
+        StringBuilder requestBodyBuilder = new StringBuilder();
+        requestBodyBuilder.append(FIELDS_GAME_BASE);
+
+        if (filter != null && !filter.isEmpty()) {
+            requestBodyBuilder.append(" where ").append(filter).append(";");
+        }
+
+        if (sort != null && !sort.isEmpty()) {
+            requestBodyBuilder.append(" sort ").append(sort).append(";");
+        }
+
+        int pageSize = limit != null ? limit : 50;
+        int pageOffset = offset != null ? offset : 0;
+
+        requestBodyBuilder.append(" limit ").append(pageSize).append(";");
+        requestBodyBuilder.append(" offset ").append(pageOffset).append(";");
+        
+        return requestBodyBuilder.toString();
     }
 
     @Override
     @Cacheable("igdb-platforms")
     public List<Platform> listPlatforms() {
-        try {
-            rateLimiter.asBlocking().consume(1);
-        } catch (InterruptedException e) {
-            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
-            Thread.currentThread().interrupt();
-            return Collections.emptyList();
-        }
-
-        if (isTokenInvalid()) {
-            authenticate();
-        }
+        if (rateLimiterInterrupted()) return Collections.emptyList();
+        ensureAuthentication();
 
         HttpHeaders headers = createHeaders();
         String requestBody = "fields name, generation, platform_type; sort name asc; limit 500;";
@@ -270,6 +271,23 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
         return Collections.emptyList();
     }
 
+    private boolean rateLimiterInterrupted() {
+        try {
+            rateLimiter.asBlocking().consume(1);
+            return false; // Not interrupted, token consumed
+        } catch (InterruptedException e) {
+            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
+            Thread.currentThread().interrupt();
+            return true; // Interrupted
+        }
+    }
+
+    private void ensureAuthentication() {
+        if (isTokenInvalid()) {
+            authenticate();
+        }
+    }
+
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HEADER_CLIENT_ID, apiConfig.getClientId());
@@ -279,13 +297,7 @@ public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
     }
 
     private void authenticate() {
-        try {
-            rateLimiter.asBlocking().consume(1);
-        } catch (InterruptedException e) {
-            logger.error(RATE_LIMITER_INTERRUPTION_MESSAGE, e);
-            Thread.currentThread().interrupt();
-            return;
-        }
+        if (rateLimiterInterrupted()) return;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);

@@ -96,9 +96,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/GameDTO'
+                $ref: '#/components/schemas/GamePageDTO'
         '400':
           description: Solicitud de filtrado inválida
 
@@ -766,6 +764,50 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserGameDTO'
+          maxItems: 100
+        pageable:
+          $ref: '#/components/schemas/PageableDTO'
+        totalPages:
+          type: integer
+          minimum: 0
+          description: El número total de páginas.
+        totalElements:
+          type: integer
+          format: int64
+          minimum: 0
+          description: El número total de elementos.
+        last:
+          type: boolean
+          description: Indica si esta es la última página.
+        first:
+          type: boolean
+          description: Indica si esta es la primera página.
+        size:
+          type: integer
+          minimum: 0
+          description: El tamaño de la página.
+        number:
+          type: integer
+          minimum: 0
+          description: El número de la página actual.
+        sort:
+          $ref: '#/components/schemas/SortDTO'
+        numberOfElements:
+          type: integer
+          minimum: 0
+          description: El número de elementos en la página actual.
+        empty:
+          type: boolean
+          description: Indica si la página está vacía.
+
+    GamePageDTO:
+      type: object
+      description: Representa una página de resultados para la búsqueda de juegos.
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameDTO'
           maxItems: 100
         pageable:
           $ref: '#/components/schemas/PageableDTO'
