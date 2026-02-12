@@ -1,6 +1,8 @@
 package com.proyecto.application.port.out;
 
 import com.proyecto.domain.model.Game;
+import org.springframework.data.domain.Page;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -20,8 +22,8 @@ public interface GameProviderPort {
     /**
      * Busca múltiples juegos por sus identificadores externos en una sola llamada.
      *
-     * @param externalIds Una lista de IDs de juegos en el sistema del proveedor.
-     * @return Una lista de juegos que coinciden con los IDs proporcionados.
+     * @param externalIds Una lista de ID de juegos en el sistema del proveedor.
+     * @return Una lista de juegos que coinciden con los ID proporcionados.
      */
     List<Game> findMultipleByExternalIds(List<Long> externalIds);
 
@@ -40,7 +42,7 @@ public interface GameProviderPort {
      * @param sort El campo por el que ordenar los resultados (ej. "total_rating desc").
      * @param limit El número máximo de resultados a devolver.
      * @param offset El número de resultados a saltar para la paginación.
-     * @return Una lista de juegos que coinciden con los criterios de filtrado.
+     * @return Una página de juegos que coinciden con los criterios de filtrado.
      */
-    List<Game> filterGames(String filter, String sort, Integer limit, Integer offset);
+    Page<Game> filterGames(String filter, String sort, Integer limit, Integer offset);
 }

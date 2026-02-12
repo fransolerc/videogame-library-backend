@@ -3,6 +3,7 @@ package com.proyecto.application.service;
 import com.proyecto.application.port.in.GameUseCase;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.domain.model.Game;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,7 +34,7 @@ public class GameService implements GameUseCase {
     }
 
     @Override
-    public List<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
+    public Page<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
         return gameProviderPort.filterGames(filter, sort, limit, offset);
     }
 }

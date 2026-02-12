@@ -9,6 +9,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 
 import java.util.Collections;
 import java.util.List;
@@ -16,6 +18,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,22 +55,27 @@ class GameServiceUnitTest {
 
     @ParameterizedTest
     @MethodSource("provideGameIdAndExpectedGame")
-    void getGameById_ShouldReturnGameOrEmpty(Long gameId, Optional<Game> expectedGame) {
+    void getGameById_ShouldReturnGameOrEmpty(Long gameId, Game expectedGame) {
         // Arrange
-        when(gameProviderPort.findByExternalId(gameId)).thenReturn(expectedGame);
+        when(gameProviderPort.findByExternalId(gameId)).thenReturn(Optional.ofNullable(expectedGame));
 
         // Act
         Optional<Game> result = gameService.getGameById(gameId);
 
         // Assert
-        assertEquals(expectedGame, result);
+        if (expectedGame != null) {
+            assertTrue(result.isPresent());
+            assertEquals(expectedGame, result.get());
+        } else {
+            assertTrue(result.isEmpty());
+        }
         verify(gameProviderPort).findByExternalId(gameId);
     }
 
     private static Stream<Arguments> provideGameIdAndExpectedGame() {
         return Stream.of(
-                Arguments.of(123L, Optional.of(mock(Game.class))),
-                Arguments.of(999L, Optional.empty())
+                Arguments.of(123L, mock(Game.class)),
+                Arguments.of(999L, null)
         );
     }
 
@@ -94,12 +102,12 @@ class GameServiceUnitTest {
 
     @ParameterizedTest
     @MethodSource("provideFilterSortAndExpectedGames")
-    void filterGames_ShouldReturnListOfGames(String filter, String sort, Integer limit, Integer offset, List<Game> expectedGames) {
+    void filterGames_ShouldReturnPageOfGames(String filter, String sort, Integer limit, Integer offset, Page<Game> expectedGames) {
         // Arrange
         when(gameProviderPort.filterGames(filter, sort, limit, offset)).thenReturn(expectedGames);
 
         // Act
-        List<Game> result = gameService.filterGames(filter, sort, limit, offset);
+        Page<Game> result = gameService.filterGames(filter, sort, limit, offset);
 
         // Assert
         assertEquals(expectedGames, result);
@@ -108,9 +116,9 @@ class GameServiceUnitTest {
 
     private static Stream<Arguments> provideFilterSortAndExpectedGames() {
         return Stream.of(
-                Arguments.of("rating > 80", "rating desc", 10, 0, List.of(mock(Game.class))),
-                Arguments.of("genres = (12, 32)", "name asc", 20, 0, List.of(mock(Game.class), mock(Game.class))),
-                Arguments.of("platforms = (6)", null, null, null, Collections.emptyList())
+                Arguments.of("rating > 80", "rating desc", 10, 0, new PageImpl<>(List.of(mock(Game.class)))),
+                Arguments.of("genres = (12, 32)", "name asc", 20, 0, new PageImpl<>(List.of(mock(Game.class), mock(Game.class)))),
+                Arguments.of("platforms = (6)", null, null, null, Page.empty())
         );
     }
 }
