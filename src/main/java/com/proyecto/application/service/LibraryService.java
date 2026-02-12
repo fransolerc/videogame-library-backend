@@ -1,6 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.in.LibraryUseCase;
+import com.proyecto.application.port.in.LibraryInterface;
 import com.proyecto.application.port.out.FavoriteGameEventPort;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.application.port.out.LibraryRepositoryPort;
@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class LibraryService implements LibraryUseCase {
+public class LibraryService implements LibraryInterface {
 
     private final LibraryRepositoryPort libraryRepositoryPort;
     private final GameProviderPort gameProviderPort;

@@ -1,6 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.in.UserUseCase;
+import com.proyecto.application.port.in.UserInterface;
 import com.proyecto.application.port.out.UserRepositoryPort;
 import com.proyecto.domain.exception.EmailAlreadyExistsException;
 import com.proyecto.domain.model.LoginResult;
@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class UserService implements UserUseCase {
+public class UserService implements UserInterface {
 
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordEncoder passwordEncoder;

@@ -1,6 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.in.GameUseCase;
+import com.proyecto.application.port.in.GameInterface;
 import com.proyecto.application.port.out.GameProviderPort;
 import com.proyecto.domain.model.Game;
 import org.springframework.data.domain.Page;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class GameService implements GameUseCase {
+public class GameService implements GameInterface {
 
     private final GameProviderPort gameProviderPort;
 

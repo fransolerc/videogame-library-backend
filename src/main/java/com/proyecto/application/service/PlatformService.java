@@ -1,6 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.in.PlatformUseCase; // Importar PlatformUseCase
+import com.proyecto.application.port.in.PlatformInterface; // Importar PlatformUseCase
 import com.proyecto.application.port.out.PlatformProviderPort;
 import com.proyecto.domain.model.Platform;
 import org.springframework.stereotype.Service;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class PlatformService implements PlatformUseCase {
+public class PlatformService implements PlatformInterface {
 
     private final PlatformProviderPort platformProviderPort;
 
