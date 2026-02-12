@@ -1,140 +1,138 @@
 # Video Game Library Backend
 
-Este proyecto es un backend para una aplicación de biblioteca de videojuegos, construido con una **Arquitectura Hexagonal**. Se integra con la API de [IGDB](https://api-docs.igdb.com/) para obtener datos de juegos en tiempo real y utiliza **Apache Kafka** para la publicación de eventos.
+This project is a backend for a video game library application, built with a **Hexagonal Architecture**. It integrates with the [IGDB API](https://api-docs.igdb.com/) to fetch real-time game data and uses **Apache Kafka** for event publishing.
 
-El objetivo es servir como un ejemplo práctico de una arquitectura de software moderna, limpia y escalable, incluyendo un sistema de autenticación robusto y comunicación asíncrona.
+The goal is to serve as a practical example of a modern, clean, and scalable software architecture, including a robust authentication system and asynchronous communication.
 
 ---
 
-## Tecnologías Principales
+## Core Technologies
 
 - **Java 25**
 - **Spring Boot 4**
 - **Maven**
-- **Spring Data JPA / Hibernate**: Para la persistencia de datos.
-- **H2 Database**: Base de datos en memoria para desarrollo y pruebas.
-- **OpenAPI 3 / Swagger UI**: Para la documentación y generación de la API.
-- **Arquitectura Hexagonal (Puertos y Adaptadores)**
-- **Spring Security**: Autenticación y autorización (JWT).
-- **JSON Web Tokens (JWT)**: Para la autenticación sin estado.
-- **Apache Kafka**: Para la mensajería asíncrona de eventos.
-- **MapStruct**: Para el mapeo de objetos entre capas.
-- **JJWT**: Librería para la implementación de JWT.
-- **JUnit 5 / Mockito / WireMock**: Para pruebas unitarias y de integración.
+- **Spring Data JPA / Hibernate**: For data persistence.
+- **H2 Database**: In-memory database for development and testing.
+- **OpenAPI 3 / Swagger UI**: For API documentation and generation.
+- **Hexagonal Architecture (Ports and Adapters)**
+- **Spring Security**: Authentication and authorization (JWT).
+- **JSON Web Tokens (JWT)**: For stateless authentication.
+- **Apache Kafka**: For asynchronous event messaging.
+- **JJWT**: Library for JWT implementation.
+- **JUnit 5 / Mockito**: For unit and integration testing.
 
 ---
 
-## Cómo Empezar
+## Getting Started
 
-### Prerrequisitos
+### Prerequisites
 
-- **Docker Desktop** (o Docker Engine) instalado y en ejecución.
-- Un cliente de API como Postman, Insomnia, o simplemente tu navegador.
+- **Docker Desktop** (or Docker Engine) installed and running.
+- An API client like Postman, Insomnia, or just your browser.
+- **JDK 17** or higher.
+- **Maven 3.8** or higher.
 
-### Configuración Obligatoria
+### Mandatory Configuration
 
-Antes de ejecutar la aplicación, debes proporcionar tus credenciales de la API de IGDB/Twitch y una clave secreta para JWT.
+Before running the application, you must provide your IGDB/Twitch API credentials and a secret key for JWT.
 
-1.  Localiza el fichero `src/main/resources/application.yml`.
-2.  Asegúrate de que las siguientes propiedades están configuradas con tus valores:
+1.  Locate the `src/main/resources/application.yml` file.
+2.  Ensure the following properties are configured with your values:
     ```yaml
     igdb:
-      client-id: "TU_CLIENT_ID_TWITCH"
-      client-secret: "TU_CLIENT_SECRET_TWITCH"
+      client-id: "YOUR_TWITCH_CLIENT_ID"
+      client-secret: "YOUR_TWITCH_CLIENT_SECRET"
     jwt:
-      secret: "una-clave-secreta-muy-larga-y-segura-que-deberias-cambiar-en-produccion" # ¡Cambia esto en producción!
+      secret: "a-very-long-and-secure-secret-key-that-you-should-change-in-production" # Change this in production!
     ```
 
-### Ejecutar con Docker
+### Running with Docker
 
-1. **Construir la imagen de Docker**:
-    -   Abre una terminal en la raíz del proyecto y ejecuta:
+1.  **Build the Docker image**:
+    -   Open a terminal in the project root and run:
         ```sh
         docker build -t videogame-library-backend .
         ```
 
-2. **Iniciar Kafka y la aplicación**:
-    -   Si tienes un `docker-compose.yml` para Kafka, asegúrate de iniciarlo primero (`docker-compose up -d`).
-    -   Luego, ejecuta la aplicación Docker:
+2.  **Start Kafka and the application**:
+    -   If you have a `docker-compose.yml` for Kafka, make sure to start it first (`docker-compose up -d`).
+    -   Then, run the application Docker container:
         ```sh
         docker run -p 8080:8080 videogame-library-backend
         ```
-    -   La aplicación se iniciará en `http://localhost:8080`.
+    -   The application will start at `http://localhost:8080`.
 
-3. **Prerrequisitos Adicionales**:
-    -   **JDK 25** o superior.
-    -   **Maven 3.8** o superior.
-    -   **Docker Compose** para ejecutar Kafka (o una instancia de Kafka local).
+### Running the Application (Traditional Method)
 
-4. **Iniciar Kafka**:
-    -   En la raíz del proyecto, ejecuta el siguiente comando para iniciar un broker de Kafka y Zookeeper:
+1.  **Start Kafka**:
+    -   In the project root, run the following command to start a Kafka and Zookeeper broker:
         ```sh
         docker-compose up -d
         ```
 
-5. **Generar código y compilar**:
+2.  **Generate code and compile**:
     ```sh
     mvn clean install
     ```
 
-6. **Ejecutar la aplicación**:
+3.  **Run the application**:
     ```sh
     mvn spring-boot:run
     ```
 
-La aplicación se iniciará en `http://localhost:8080`.
+The application will start at `http://localhost:8080`.
 
 ---
 
-## Endpoints de la API
+## API Endpoints
 
-La documentación completa de la API está disponible en **[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)** una vez que la aplicación está en marcha.
+Full API documentation is available at **[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)** once the application is running.
 
-### Autenticación y Estado
+### Authentication & Status
 
-| Método | Endpoint          | Descripción                                                                                                          |
-|:-------|:------------------|:---------------------------------------------------------------------------------------------------------------------|
-| `POST` | `/users/register` | Registra un nuevo usuario. La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número. |
-| `POST` | `/users/login`    | Inicia sesión y devuelve un token JWT, `userId` y `username`.                                                        |
-| `GET`  | `/health`         | Comprueba el estado de la aplicación. Devuelve `{"status": "UP"}` si todo está correcto.                             |
+| Method | Endpoint          | Description                                                                                                       |
+|:-------|:------------------|:------------------------------------------------------------------------------------------------------------------|
+| `POST` | `/users/register` | Registers a new user. The password must have at least 8 characters, one uppercase, one lowercase, and one number. |
+| `POST` | `/users/login`    | Logs in and returns a JWT, `userId`, and `username`.                                                              |
+| `GET`  | `/health`         | Checks the application's health status. Returns `{"status": "UP"}` if everything is correct.                      |
 
-### Búsqueda de Juegos
+### Game Discovery
 
-| Método | Endpoint        | Descripción                                                                           |
-|:-------|:----------------|:--------------------------------------------------------------------------------------|
-| `GET`  | `/games/search` | Busca videojuegos por nombre. (Ej: `?name=Zelda`)                                     |
-| `GET`  | `/games/{id}`   | Obtiene los detalles completos de un videojuego por su ID de IGDB.                    |
-| `POST` | `/games/filter` | Realiza una búsqueda avanzada con filtros, ordenación y paginación.                   |
-| `POST` | `/games/batch`  | Obtiene los detalles completos de múltiples videojuegos a partir de una lista de IDs. |
+| Method | Endpoint        | Description                                                                    |
+|:-------|:----------------|:-------------------------------------------------------------------------------|
+| `GET`  | `/games/search` | Searches for video games by name. (e.g., `?name=Zelda`)                        |
+| `GET`  | `/games/{id}`   | Gets the full details of a video game by its IGDB ID.                          |
+| `POST` | `/games/filter` | Performs an advanced search with filters, sorting, and pagination.             |
+| `POST` | `/games/batch`  | Gets the full details of multiple video games from a list of IDs.              |
 
-### Plataformas
+### Platforms
 
-| Método | Endpoint     | Descripción                                             |
-|:-------|:-------------|:--------------------------------------------------------|
-| `GET`  | `/platforms` | Lista todas las plataformas de videojuegos disponibles. |
+| Method | Endpoint     | Description                                      |
+|:-------|:-------------|:-------------------------------------------------|
+| `GET`  | `/platforms` | Lists all available video game platforms.        |
 
-### Biblioteca de Usuario
+### User Library
 
-| Método   | Endpoint                                   | Descripción                                                                                                                          |
-|:---------|:-------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|
-| `GET`    | `/users/{userId}/games`                    | Lista todos los juegos en la biblioteca de un usuario.                                                                               |
-| `GET`    | `/users/{userId}/games/{gameId}`           | Obtiene el estado de un juego específico en la biblioteca del usuario.                                                               |
-| `PUT`    | `/users/{userId}/games/{gameId}`           | Añade un juego a la biblioteca o actualiza su estado. Si el estado es `NONE` y no es favorito, se elimina.                           |
-| `DELETE` | `/users/{userId}/games/{gameId}`           | Elimina un juego de la biblioteca de un usuario (borrado completo).                                                                  |
-| `POST`   | `/users/{userId}/games/{gameId}/favorite`  | Marca un juego como favorito. Si no está en la biblioteca, lo añade con estado `NONE`. Devuelve el recurso actualizado.              |
-| `DELETE` | `/users/{userId}/games/{gameId}/favorite`  | Quita un juego de favoritos. Si el estado del juego es `NONE`, se elimina por completo de la biblioteca.                             |
-| `GET`    | `/users/{userId}/favorites`                | Lista todos los juegos favoritos de un usuario (paginado).                                                                           |
+| Method   | Endpoint                                  | Description                                                                                                              |
+|:---------|:------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------|
+| `GET`    | `/users/{userId}/games`                   | Lists all games in a user's library.                                                                                     |
+| `GET`    | `/users/{userId}/games/{gameId}`          | Gets the status of a specific game in the user's library.                                                                |
+| `PUT`    | `/users/{userId}/games/{gameId}`          | Adds a game to the library or updates its status. If the status is `NONE` and it's not a favorite, the entry is removed. |
+| `DELETE` | `/users/{userId}/games/{gameId}`          | Removes a game from a user's library (complete deletion).                                                                |
+| `POST`   | `/users/{userId}/games/{gameId}/favorite` | Marks a game as a favorite. If not in the library, it's added with `NONE` status. Returns the updated resource.          |
+| `DELETE` | `/users/{userId}/games/{gameId}/favorite` | Removes a game from favorites. If the game's status is `NONE`, it's completely removed from the library.                 |
+| `GET`    | `/users/{userId}/favorites`               | Lists all of a user's favorite games (paginated).                                                                        |
 
 ---
 
-## Pruebas
+## Testing
 
-El proyecto tiene una alta cobertura de pruebas, incluyendo:
+The project has high test coverage, including:
 
--   **Pruebas Unitarias**: Para los servicios de aplicación y lógica de dominio.
--   **Pruebas de Integración**: Para los controladores REST y la interacción con la base de datos.
+-   **Unit Tests**: For application services and domain logic.
+-   **Integration Tests**: For REST controllers and database interaction.
 
-Para ejecutar todas las pruebas, usa el siguiente comando de Maven:
+To run all tests, use the following Maven command:
 
 ```sh
 mvn clean verify
@@ -142,16 +140,16 @@ mvn clean verify
 
 ---
 
-## Arquitectura
+## Architecture
 
-El proyecto sigue los principios de la **Arquitectura Hexagonal** para separar el dominio de negocio de los detalles de infraestructura.
+The project follows the principles of **Hexagonal Architecture** to separate the business domain from infrastructure details.
 
--   **`domain`**: Contiene la lógica y las entidades del negocio (el "corazón" de la aplicación). No depende de nada.
--   **`application`**: Orquesta los flujos de trabajo. Contiene los *puertos* (interfaces `UseCase`) y los *casos de uso* (servicios que implementan esos `UseCase`).
--   **`infrastructure`**: Contiene las implementaciones concretas de los puertos (los "adaptadores").
-    -   **`adapter.in.web`**: Adaptadores de entrada (Driving Adapters), como los controladores REST.
-    -   **`adapter.out.persistence`**: Adaptadores de salida (Driven Adapters) para bases de datos (JPA).
-    -   **`adapter.out.provider`**: Adaptadores de salida para proveedores externos (IGDB API).
-    -   **`adapter.out.kafka`**: Adaptadores de salida para publicar eventos en Kafka.
-    -   **`security`**: Configuración de seguridad (JWT).
-    -   **`config`**: Configuraciones generales de la aplicación.
+-   **`domain`**: Contains the business logic and entities (the "core" of the application). It has no dependencies on other layers.
+-   **`application`**: Orchestrates workflows. It contains the *ports* (`UseCase` interfaces) and the *use cases* (services that implement those `UseCase` interfaces).
+-   **`infrastructure`**: Contains the concrete implementations of the ports (the "adapters").
+    -   **`adapter.in.web`**: Input adapters (Driving Adapters), such as REST controllers.
+    -   **`adapter.out.persistence`**: Output adapters (Driven Adapters) for databases (JPA).
+    -   **`adapter.out.provider`**: Output adapters for external providers (IGDB API).
+    -   **`adapter.out.kafka`**: Output adapters for publishing events to Kafka.
+    -   **`security`**: Security configuration (JWT).
+    -   **`config`**: General application configurations.
