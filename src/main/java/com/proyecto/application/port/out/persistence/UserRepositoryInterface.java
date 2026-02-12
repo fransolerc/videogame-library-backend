@@ -1,4 +1,4 @@
-package com.proyecto.application.port.out;
+package com.proyecto.application.port.out.persistence;
 
 import com.proyecto.domain.model.User;
 import java.util.Optional;
@@ -6,7 +6,7 @@ import java.util.Optional;
 /**
  * Puerto de salida para la persistencia de usuarios.
  */
-public interface UserRepositoryPort {
+public interface UserRepositoryInterface {
 
     /**
      * Guarda un usuario en el repositorio.
@@ -24,11 +24,4 @@ public interface UserRepositoryPort {
      */
     Optional<User> findByEmail(String email);
 
-    /**
-     * Busca un usuario por su ID.
-     *
-     * @param id El ID del usuario.
-     * @return Un Optional con el usuario si se encuentra.
-     */
-    Optional<User> findById(String id);
 }

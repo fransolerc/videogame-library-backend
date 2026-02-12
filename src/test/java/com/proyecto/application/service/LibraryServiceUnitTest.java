@@ -1,9 +1,9 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.out.FavoriteGameEventPort;
-import com.proyecto.application.port.out.GameProviderPort;
-import com.proyecto.application.port.out.LibraryRepositoryPort;
-import com.proyecto.application.port.out.UserRepositoryPort;
+import com.proyecto.application.port.out.event.FavoriteGameEventInterface;
+import com.proyecto.application.port.out.provider.GameProviderInterface;
+import com.proyecto.application.port.out.persistence.LibraryRepositoryInterface;
+import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import com.proyecto.domain.model.Game;
 import com.proyecto.domain.model.GameStatus;
@@ -41,13 +41,13 @@ import static org.mockito.Mockito.*;
 class LibraryServiceUnitTest {
 
     @Mock
-    private LibraryRepositoryPort libraryRepositoryPort;
+    private LibraryRepositoryInterface libraryRepositoryInterface;
     @Mock
-    private GameProviderPort gameProviderPort;
+    private GameProviderInterface gameProviderInterface;
     @Mock
-    private UserRepositoryPort userRepositoryPort;
+    private UserRepositoryInterface userRepositoryInterface;
     @Mock
-    private FavoriteGameEventPort favoriteGameEventPort;
+    private FavoriteGameEventInterface favoriteGameEventInterface;
     @Mock
     private SecurityContext securityContext;
     @Mock
@@ -56,7 +56,7 @@ class LibraryServiceUnitTest {
     private UserDetails userDetails;
 
     @InjectMocks
-    private LibraryService libraryService;
+    private LibraryServiceService libraryService;
 
     private final UUID userId = UUID.randomUUID();
     private final Long gameId = 123L;
@@ -68,10 +68,10 @@ class LibraryServiceUnitTest {
         lenient().when(authentication.isAuthenticated()).thenReturn(true);
         lenient().when(authentication.getPrincipal()).thenReturn(userDetails);
         lenient().when(userDetails.getUsername()).thenReturn(userEmail);
-        lenient().when(gameProviderPort.findByExternalId(anyLong())).thenReturn(Optional.of(mock(Game.class)));
+        lenient().when(gameProviderInterface.findByExternalId(anyLong())).thenReturn(Optional.of(mock(Game.class)));
         
         User user = new User(userId.toString(), "testuser", userEmail, "password");
-        lenient().when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.of(user));
+        lenient().when(userRepositoryInterface.findByEmail(userEmail)).thenReturn(Optional.of(user));
         
         SecurityContextHolder.setContext(securityContext);
     }
@@ -80,17 +80,17 @@ class LibraryServiceUnitTest {
     class GeneralLibraryTests {
         @Test
         void listUserLibrary_shouldReturnListOfGames() {
-            when(libraryRepositoryPort.findByUserId(userId.toString())).thenReturn(List.of(mock(UserGame.class)));
+            when(libraryRepositoryInterface.findByUserId(userId.toString())).thenReturn(List.of(mock(UserGame.class)));
             List<UserGame> result = libraryService.listUserLibrary(userId);
             assertFalse(result.isEmpty());
-            verify(libraryRepositoryPort).findByUserId(userId.toString());
+            verify(libraryRepositoryInterface).findByUserId(userId.toString());
         }
 
         @ParameterizedTest
         @MethodSource("com.proyecto.application.service.LibraryServiceUnitTest#provideUserGame")
         void getUserGameStatus_shouldReturnCorrectOptional(UserGame game) {
             Optional<UserGame> expectedOptional = Optional.ofNullable(game);
-            when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(expectedOptional);
+            when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(expectedOptional);
             
             Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
             
@@ -100,20 +100,20 @@ class LibraryServiceUnitTest {
         @Test
         void removeGameFromLibrary_shouldCallDelete() {
             libraryService.removeGameFromLibrary(userId, gameId);
-            verify(libraryRepositoryPort).deleteByUserIdAndGameId(userId.toString(), gameId);
+            verify(libraryRepositoryInterface).deleteByUserIdAndGameId(userId.toString(), gameId);
         }
 
         @Test
         void listFavoriteGames_shouldReturnPageOfGames() {
             PageRequest pageable = PageRequest.of(0, 20);
             Page<UserGame> page = new PageImpl<>(List.of(mock(UserGame.class)));
-            when(libraryRepositoryPort.findByUserIdAndIsFavoriteTrue(userId.toString(), pageable))
+            when(libraryRepositoryInterface.findByUserIdAndIsFavoriteTrue(userId.toString(), pageable))
                     .thenReturn(page);
 
             Page<UserGame> result = libraryService.listFavoriteGames(userId, pageable);
 
             assertFalse(result.isEmpty());
-            verify(libraryRepositoryPort).findByUserIdAndIsFavoriteTrue(userId.toString(), pageable);
+            verify(libraryRepositoryInterface).findByUserIdAndIsFavoriteTrue(userId.toString(), pageable);
         }
     }
 
@@ -124,13 +124,13 @@ class LibraryServiceUnitTest {
                                                   GameStatus expectedFinalStatus,
                                                   boolean shouldSave, boolean shouldUpdate, boolean shouldDelete) {
         // Arrange
-        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.ofNullable(existingEntry));
+        when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.ofNullable(existingEntry));
         
         if (shouldSave) {
-            when(libraryRepositoryPort.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
+            when(libraryRepositoryInterface.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
         }
         if (shouldUpdate) {
-            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
+            when(libraryRepositoryInterface.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
         }
 
         // Act & Assert
@@ -146,9 +146,9 @@ class LibraryServiceUnitTest {
             }
         }
 
-        verify(libraryRepositoryPort, times(shouldSave ? 1 : 0)).save(any(UserGame.class));
-        verify(libraryRepositoryPort, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
-        verify(libraryRepositoryPort, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
+        verify(libraryRepositoryInterface, times(shouldSave ? 1 : 0)).save(any(UserGame.class));
+        verify(libraryRepositoryInterface, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
+        verify(libraryRepositoryInterface, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
     }
 
     private static Stream<Arguments> provideUpsertGameInLibraryArguments() {
@@ -173,13 +173,13 @@ class LibraryServiceUnitTest {
     @MethodSource("provideAddGameToFavoritesArguments")
     void addGameToFavorites_shouldHandleAllCases(UserGame existingEntry, GameStatus expectedStatus, boolean expectedFavorite, boolean shouldSave, boolean shouldUpdate) {
         // Arrange
-        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.ofNullable(existingEntry));
+        when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.ofNullable(existingEntry));
         
         if (shouldSave) {
-            when(libraryRepositoryPort.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
+            when(libraryRepositoryInterface.save(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
         }
         if (shouldUpdate) {
-            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
+            when(libraryRepositoryInterface.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
         }
 
         // Act
@@ -189,9 +189,9 @@ class LibraryServiceUnitTest {
         assertNotNull(result);
         assertEquals(expectedStatus, result.status());
         assertEquals(expectedFavorite, result.isFavorite());
-        verify(libraryRepositoryPort, times(shouldSave ? 1 : 0)).save(any(UserGame.class));
-        verify(libraryRepositoryPort, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
-        verify(favoriteGameEventPort).publishFavoriteGameEvent(any());
+        verify(libraryRepositoryInterface, times(shouldSave ? 1 : 0)).save(any(UserGame.class));
+        verify(libraryRepositoryInterface, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
+        verify(favoriteGameEventInterface).publishFavoriteGameEvent(any());
     }
 
     private static Stream<Arguments> provideAddGameToFavoritesArguments() {
@@ -209,18 +209,18 @@ class LibraryServiceUnitTest {
     @MethodSource("provideRemoveGameFromFavoritesArguments")
     void removeGameFromFavorites_shouldHandleAllCases(UserGame existingEntry, boolean shouldDelete, boolean shouldUpdate, boolean shouldPublishEvent) {
         // Arrange
-        when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existingEntry));
+        when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existingEntry));
         if (shouldUpdate) {
-            when(libraryRepositoryPort.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
+            when(libraryRepositoryInterface.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
         }
 
         // Act
         libraryService.removeGameFromFavorites(userId, gameId);
 
         // Assert
-        verify(libraryRepositoryPort, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
-        verify(libraryRepositoryPort, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
-        verify(favoriteGameEventPort, times(shouldPublishEvent ? 1 : 0)).publishFavoriteGameEvent(any());
+        verify(libraryRepositoryInterface, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
+        verify(libraryRepositoryInterface, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
+        verify(favoriteGameEventInterface, times(shouldPublishEvent ? 1 : 0)).publishFavoriteGameEvent(any());
     }
 
     private static Stream<Arguments> provideRemoveGameFromFavoritesArguments() {
@@ -250,7 +250,7 @@ class LibraryServiceUnitTest {
         @Test
         void shouldThrowException_whenUserIdsDoNotMatch() {
             User user = new User(UUID.randomUUID().toString(), "testuser", userEmail, "password");
-            when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.of(user));
+            when(userRepositoryInterface.findByEmail(userEmail)).thenReturn(Optional.of(user));
             assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
         }
 
@@ -274,7 +274,7 @@ class LibraryServiceUnitTest {
 
         @Test
         void shouldThrowException_whenUserNotFoundInDb() {
-            when(userRepositoryPort.findByEmail(userEmail)).thenReturn(Optional.empty());
+            when(userRepositoryInterface.findByEmail(userEmail)).thenReturn(Optional.empty());
             assertThrows(UnauthorizedLibraryAccessException.class, () -> libraryService.listUserLibrary(userId));
         }
 
@@ -282,10 +282,10 @@ class LibraryServiceUnitTest {
         void shouldGetEmail_whenPrincipalIsNotUserDetails() {
             when(authentication.getPrincipal()).thenReturn("user-principal-string");
             User user = new User(userId.toString(), "testuser", "user-principal-string", "password");
-            when(userRepositoryPort.findByEmail("user-principal-string")).thenReturn(Optional.of(user));
+            when(userRepositoryInterface.findByEmail("user-principal-string")).thenReturn(Optional.of(user));
 
             assertDoesNotThrow(() -> libraryService.listUserLibrary(userId));
-            verify(userRepositoryPort).findByEmail("user-principal-string");
+            verify(userRepositoryInterface).findByEmail("user-principal-string");
         }
     }
 }

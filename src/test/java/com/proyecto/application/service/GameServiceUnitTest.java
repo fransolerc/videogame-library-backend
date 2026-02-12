@@ -1,6 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.out.GameProviderPort;
+import com.proyecto.application.port.out.provider.GameProviderInterface;
 import com.proyecto.domain.model.Game;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,23 +27,23 @@ import static org.mockito.Mockito.when;
 class GameServiceUnitTest {
 
     @Mock
-    private GameProviderPort gameProviderPort;
+    private GameProviderInterface gameProviderInterface;
 
     @InjectMocks
-    private GameService gameService;
+    private GameServiceService gameService;
 
     @ParameterizedTest
     @MethodSource("provideSearchQueriesAndExpectedGames")
     void searchGamesByName_ShouldReturnListOfGames(String query, List<Game> expectedGames) {
         // Arrange
-        when(gameProviderPort.searchByName(query)).thenReturn(expectedGames);
+        when(gameProviderInterface.searchByName(query)).thenReturn(expectedGames);
 
         // Act
         List<Game> result = gameService.searchGamesByName(query);
 
         // Assert
         assertEquals(expectedGames, result);
-        verify(gameProviderPort).searchByName(query);
+        verify(gameProviderInterface).searchByName(query);
     }
 
     private static Stream<Arguments> provideSearchQueriesAndExpectedGames() {
@@ -57,7 +57,7 @@ class GameServiceUnitTest {
     @MethodSource("provideGameIdAndExpectedGame")
     void getGameById_ShouldReturnGameOrEmpty(Long gameId, Game expectedGame) {
         // Arrange
-        when(gameProviderPort.findByExternalId(gameId)).thenReturn(Optional.ofNullable(expectedGame));
+        when(gameProviderInterface.findByExternalId(gameId)).thenReturn(Optional.ofNullable(expectedGame));
 
         // Act
         Optional<Game> result = gameService.getGameById(gameId);
@@ -69,7 +69,7 @@ class GameServiceUnitTest {
         } else {
             assertTrue(result.isEmpty());
         }
-        verify(gameProviderPort).findByExternalId(gameId);
+        verify(gameProviderInterface).findByExternalId(gameId);
     }
 
     private static Stream<Arguments> provideGameIdAndExpectedGame() {
@@ -83,14 +83,14 @@ class GameServiceUnitTest {
     @MethodSource("provideIdsAndExpectedGames")
     void getGamesByIds_ShouldReturnListOfGames(List<Long> ids, List<Game> expectedGames) {
         // Arrange
-        when(gameProviderPort.findMultipleByExternalIds(ids)).thenReturn(expectedGames);
+        when(gameProviderInterface.findMultipleByExternalIds(ids)).thenReturn(expectedGames);
 
         // Act
         List<Game> result = gameService.getGamesByIds(ids);
 
         // Assert
         assertEquals(expectedGames, result);
-        verify(gameProviderPort).findMultipleByExternalIds(ids);
+        verify(gameProviderInterface).findMultipleByExternalIds(ids);
     }
 
     private static Stream<Arguments> provideIdsAndExpectedGames() {
@@ -104,14 +104,14 @@ class GameServiceUnitTest {
     @MethodSource("provideFilterSortAndExpectedGames")
     void filterGames_ShouldReturnPageOfGames(String filter, String sort, Integer limit, Integer offset, Page<Game> expectedGames) {
         // Arrange
-        when(gameProviderPort.filterGames(filter, sort, limit, offset)).thenReturn(expectedGames);
+        when(gameProviderInterface.filterGames(filter, sort, limit, offset)).thenReturn(expectedGames);
 
         // Act
         Page<Game> result = gameService.filterGames(filter, sort, limit, offset);
 
         // Assert
         assertEquals(expectedGames, result);
-        verify(gameProviderPort).filterGames(filter, sort, limit, offset);
+        verify(gameProviderInterface).filterGames(filter, sort, limit, offset);
     }
 
     private static Stream<Arguments> provideFilterSortAndExpectedGames() {

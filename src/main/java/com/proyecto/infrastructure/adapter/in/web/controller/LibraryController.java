@@ -1,6 +1,6 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
-import com.proyecto.application.port.in.LibraryInterface;
+import com.proyecto.application.port.in.LibraryServiceInterface;
 import com.proyecto.domain.model.UserGame;
 import com.proyecto.infrastructure.adapter.in.web.mapper.UserGameMapper;
 import com.proyecto.videogames.generated.api.LibraryApi;
@@ -25,17 +25,17 @@ import java.util.UUID;
 @RestController
 public class LibraryController implements LibraryApi {
 
-    private final LibraryInterface libraryInterface;
+    private final LibraryServiceInterface libraryServiceInterface;
     private final UserGameMapper userGameMapper;
 
-    public LibraryController(LibraryInterface libraryInterface, UserGameMapper userGameMapper) {
-        this.libraryInterface = libraryInterface;
+    public LibraryController(LibraryServiceInterface libraryServiceInterface, UserGameMapper userGameMapper) {
+        this.libraryServiceInterface = libraryServiceInterface;
         this.userGameMapper = userGameMapper;
     }
 
     @Override
     public ResponseEntity<List<UserGameDTO>> listUserLibrary(@NotNull @PathVariable("userId") UUID userId) {
-        return ResponseEntity.ok(userGameMapper.toApiUserGameList(libraryInterface.listUserLibrary(userId)));
+        return ResponseEntity.ok(userGameMapper.toApiUserGameList(libraryServiceInterface.listUserLibrary(userId)));
     }
 
     @Override
@@ -43,7 +43,7 @@ public class LibraryController implements LibraryApi {
             @NotNull @PathVariable("userId") UUID userId,
             @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId
     ) {
-        return libraryInterface.getUserGameStatus(userId, gameId)
+        return libraryServiceInterface.getUserGameStatus(userId, gameId)
                 .map(userGameMapper::toApiUserGame)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -55,7 +55,7 @@ public class LibraryController implements LibraryApi {
             @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId,
             @Valid @RequestBody UpdateGameStatusRequestDTO updateGameStatusRequestDTO
     ) {
-        return libraryInterface.upsertGameInLibrary(
+        return libraryServiceInterface.upsertGameInLibrary(
                 userId,
                 gameId,
                 userGameMapper.toDomainGameStatus(updateGameStatusRequestDTO.getStatus())
@@ -70,7 +70,7 @@ public class LibraryController implements LibraryApi {
             @NotNull @PathVariable("userId") UUID userId,
             @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId
     ) {
-        libraryInterface.removeGameFromLibrary(userId, gameId);
+        libraryServiceInterface.removeGameFromLibrary(userId, gameId);
         return ResponseEntity.noContent().build();
     }
 
@@ -79,7 +79,7 @@ public class LibraryController implements LibraryApi {
             @NotNull @PathVariable("userId") UUID userId,
             @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId
     ) {
-        UserGame updatedUserGame = libraryInterface.addGameToFavorites(userId, gameId);
+        UserGame updatedUserGame = libraryServiceInterface.addGameToFavorites(userId, gameId);
         return ResponseEntity.ok(userGameMapper.toApiUserGame(updatedUserGame));
     }
 
@@ -88,7 +88,7 @@ public class LibraryController implements LibraryApi {
             @NotNull @PathVariable("userId") UUID userId,
             @NotNull @Min(value = 1L) @PathVariable("gameId") Long gameId
     ) {
-        libraryInterface.removeGameFromFavorites(userId, gameId);
+        libraryServiceInterface.removeGameFromFavorites(userId, gameId);
         return ResponseEntity.noContent().build();
     }
 
@@ -99,6 +99,6 @@ public class LibraryController implements LibraryApi {
             @Min(1) @Max(100) @Valid @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(userGameMapper.toApiUserGamePage(libraryInterface.listFavoriteGames(userId, pageable)));
+        return ResponseEntity.ok(userGameMapper.toApiUserGamePage(libraryServiceInterface.listFavoriteGames(userId, pageable)));
     }
 }

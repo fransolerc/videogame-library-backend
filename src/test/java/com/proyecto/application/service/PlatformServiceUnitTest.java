@@ -1,6 +1,6 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.out.PlatformProviderPort;
+import com.proyecto.application.port.out.provider.PlatformProviderInterface;
 import com.proyecto.domain.model.Platform;
 import com.proyecto.domain.model.PlatformType;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,23 +23,23 @@ import static org.mockito.Mockito.when;
 class PlatformServiceUnitTest {
 
     @Mock
-    private PlatformProviderPort platformProviderPort;
+    private PlatformProviderInterface platformProviderInterface;
 
     @InjectMocks
-    private PlatformService platformService;
+    private PlatformServiceService platformService;
 
     @ParameterizedTest
     @MethodSource("providePlatformLists")
     void listPlatforms_ShouldReturnListOfPlatforms(List<Platform> expectedPlatforms) {
         // Arrange
-        when(platformProviderPort.listPlatforms()).thenReturn(expectedPlatforms);
+        when(platformProviderInterface.listPlatforms()).thenReturn(expectedPlatforms);
 
         // Act
         List<Platform> result = platformService.listPlatforms();
 
         // Assert
         assertEquals(expectedPlatforms, result);
-        verify(platformProviderPort).listPlatforms();
+        verify(platformProviderInterface).listPlatforms();
     }
 
     private static Stream<Arguments> providePlatformLists() {

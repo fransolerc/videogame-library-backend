@@ -1,11 +1,11 @@
-package com.proyecto.application.port.out;
+package com.proyecto.application.port.out.event;
 
 import com.proyecto.domain.event.FavoriteGameEvent;
 
 /**
  * Puerto de salida para publicar eventos relacionados con juegos favoritos.
  */
-public interface FavoriteGameEventPort {
+public interface FavoriteGameEventInterface {
 
     /**
      * Publica un evento de juego favorito.

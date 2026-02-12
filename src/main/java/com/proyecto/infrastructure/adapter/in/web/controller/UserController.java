@@ -1,6 +1,6 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
-import com.proyecto.application.port.in.UserInterface;
+import com.proyecto.application.port.in.UserServiceInterface;
 import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.adapter.in.web.mapper.UserMapper;
 import com.proyecto.videogames.generated.api.UsersApi;
@@ -20,17 +20,17 @@ import java.net.URI;
 @RestController
 public class UserController implements UsersApi {
 
-    private final UserInterface userInterface;
+    private final UserServiceInterface userServiceInterface;
     private final UserMapper userMapper;
 
-    public UserController(UserInterface userInterface, UserMapper userMapper) {
-        this.userInterface = userInterface;
+    public UserController(UserServiceInterface userServiceInterface, UserMapper userMapper) {
+        this.userServiceInterface = userServiceInterface;
         this.userMapper = userMapper;
     }
 
     @Override
     public ResponseEntity<UserDTO> registerUser(@Valid @RequestBody UserRegistrationRequestDTO userRegistrationRequest) {
-        User domainUser = userInterface.registerUser(
+        User domainUser = userServiceInterface.registerUser(
                 userRegistrationRequest.getUsername(),
                 userRegistrationRequest.getEmail(),
                 userRegistrationRequest.getPassword()
@@ -49,7 +49,7 @@ public class UserController implements UsersApi {
 
     @Override
     public ResponseEntity<LoginResponseDTO> loginUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
-        return userInterface.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
+        return userServiceInterface.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
                 .map(userMapper::toLoginResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());

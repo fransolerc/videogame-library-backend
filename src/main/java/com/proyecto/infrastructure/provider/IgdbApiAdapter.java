@@ -1,8 +1,8 @@
 package com.proyecto.infrastructure.provider;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.proyecto.application.port.out.GameProviderPort;
-import com.proyecto.application.port.out.PlatformProviderPort;
+import com.proyecto.application.port.out.provider.GameProviderInterface;
+import com.proyecto.application.port.out.provider.PlatformProviderInterface;
 import com.proyecto.domain.model.Artwork;
 import com.proyecto.domain.model.Game;
 import com.proyecto.domain.model.Platform;
@@ -31,7 +31,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
-public class IgdbApiAdapter implements GameProviderPort, PlatformProviderPort {
+public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderInterface {
 
     private static final Logger logger = LoggerFactory.getLogger(IgdbApiAdapter.class);
     private static final String GAMES_URL = "/games";
