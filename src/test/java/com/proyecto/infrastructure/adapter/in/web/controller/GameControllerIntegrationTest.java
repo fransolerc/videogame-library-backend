@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -66,7 +67,10 @@ class GameControllerIntegrationTest {
         mockMvc.perform(post("/games/filter")
                        .contentType(MediaType.APPLICATION_JSON)
                        .content(objectMapper.writeValueAsString(filterRequest)))
-               .andExpect(status().isOk());
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content").isArray())
+               .andExpect(jsonPath("$.totalPages").exists())
+               .andExpect(jsonPath("$.totalElements").exists());
     }
 
     private static Stream<Arguments> provideGameFilters() {
