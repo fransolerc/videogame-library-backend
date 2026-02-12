@@ -115,6 +115,12 @@ public class LibraryService implements LibraryUseCase {
         UserGame userGame = libraryRepositoryPort.findByUserIdAndGameId(userIdString, gameId)
                 .orElseThrow(() -> new RuntimeException("Game not found in library"));
 
+        // Solo publicar el evento si el juego era realmente un favorito
+        if (Boolean.TRUE.equals(userGame.isFavorite())) {
+            FavoriteGameEvent event = new FavoriteGameEvent(userId, gameId, false, LocalDateTime.now());
+            favoriteGameEventPort.publishFavoriteGameEvent(event);
+        }
+
         if (userGame.status() == GameStatus.NONE) {
             libraryRepositoryPort.deleteByUserIdAndGameId(userIdString, gameId);
         } else {

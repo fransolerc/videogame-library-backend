@@ -87,7 +87,7 @@ class LibraryServiceUnitTest {
         }
 
         @ParameterizedTest
-        @MethodSource("provideUserGame")
+        @MethodSource("com.proyecto.application.service.LibraryServiceUnitTest#provideUserGame")
         void getUserGameStatus_shouldReturnCorrectOptional(UserGame game) {
             Optional<UserGame> expectedOptional = Optional.ofNullable(game);
             when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(expectedOptional);
@@ -95,13 +95,6 @@ class LibraryServiceUnitTest {
             Optional<UserGame> result = libraryService.getUserGameStatus(userId, gameId);
             
             assertEquals(expectedOptional, result);
-        }
-
-        private static Stream<Arguments> provideUserGame() {
-            return Stream.of(
-                    Arguments.of(mock(UserGame.class)),
-                    Arguments.of((UserGame) null)
-            );
         }
 
         @Test
@@ -128,7 +121,7 @@ class LibraryServiceUnitTest {
     @MethodSource("provideUpsertGameInLibraryArguments")
     void upsertGameInLibrary_shouldHandleAllCases(UserGame existingEntry, GameStatus newStatus,
                                                   Class<? extends Exception> expectedException,
-                                                  Optional<GameStatus> expectedFinalStatus,
+                                                  GameStatus expectedFinalStatus,
                                                   boolean shouldSave, boolean shouldUpdate, boolean shouldDelete) {
         // Arrange
         when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.ofNullable(existingEntry));
@@ -145,11 +138,11 @@ class LibraryServiceUnitTest {
             assertThrows(expectedException, () -> libraryService.upsertGameInLibrary(userId, gameId, newStatus));
         } else {
             Optional<UserGame> result = libraryService.upsertGameInLibrary(userId, gameId, newStatus);
-            if (expectedFinalStatus.isPresent()) {
+            if (expectedFinalStatus != null) {
                 assertTrue(result.isPresent());
-                assertEquals(expectedFinalStatus.get(), result.get().status());
+                assertEquals(expectedFinalStatus, result.get().status());
             } else {
-                assertTrue(result.isEmpty());
+                assertFalse(result.isPresent());
             }
         }
 
@@ -164,15 +157,15 @@ class LibraryServiceUnitTest {
 
         return Stream.of(
                 // Create new entry
-                Arguments.of(null, GameStatus.PLAYING, null, Optional.of(GameStatus.PLAYING), true, false, false),
+                Arguments.of(null, GameStatus.PLAYING, null, GameStatus.PLAYING, true, false, false),
                 // Don't create if status is NONE
-                Arguments.of(null, GameStatus.NONE, null, Optional.empty(), false, false, false),
+                Arguments.of(null, GameStatus.NONE, null, null, false, false, false),
                 // Update existing entry
-                Arguments.of(existingNotFavorite, GameStatus.COMPLETED, null, Optional.of(GameStatus.COMPLETED), false, true, false),
+                Arguments.of(existingNotFavorite, GameStatus.COMPLETED, null, GameStatus.COMPLETED, false, true, false),
                 // Delete existing entry
-                Arguments.of(existingNotFavorite, GameStatus.NONE, null, Optional.empty(), false, false, true),
+                Arguments.of(existingNotFavorite, GameStatus.NONE, null, null, false, false, true),
                 // Don't delete if favorite
-                Arguments.of(existingFavorite, GameStatus.NONE, null, Optional.of(GameStatus.NONE), false, true, false)
+                Arguments.of(existingFavorite, GameStatus.NONE, null, GameStatus.NONE, false, true, false)
         );
     }
 
@@ -214,7 +207,7 @@ class LibraryServiceUnitTest {
 
     @ParameterizedTest
     @MethodSource("provideRemoveGameFromFavoritesArguments")
-    void removeGameFromFavorites_shouldHandleAllCases(UserGame existingEntry, boolean shouldDelete, boolean shouldUpdate) {
+    void removeGameFromFavorites_shouldHandleAllCases(UserGame existingEntry, boolean shouldDelete, boolean shouldUpdate, boolean shouldPublishEvent) {
         // Arrange
         when(libraryRepositoryPort.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existingEntry));
         if (shouldUpdate) {
@@ -227,17 +220,28 @@ class LibraryServiceUnitTest {
         // Assert
         verify(libraryRepositoryPort, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
         verify(libraryRepositoryPort, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
+        verify(favoriteGameEventPort, times(shouldPublishEvent ? 1 : 0)).publishFavoriteGameEvent(any());
     }
 
     private static Stream<Arguments> provideRemoveGameFromFavoritesArguments() {
-        UserGame existingNoneStatus = new UserGame(UUID.randomUUID().toString(), 456L, GameStatus.NONE, LocalDateTime.now(), true);
-        UserGame existingPlayingStatus = new UserGame(UUID.randomUUID().toString(), 789L, GameStatus.PLAYING, LocalDateTime.now(), true);
+        UserGame existingFavoriteNoneStatus = new UserGame(UUID.randomUUID().toString(), 456L, GameStatus.NONE, LocalDateTime.now(), true);
+        UserGame existingFavoritePlayingStatus = new UserGame(UUID.randomUUID().toString(), 789L, GameStatus.PLAYING, LocalDateTime.now(), true);
+        UserGame existingNotFavorite = new UserGame(UUID.randomUUID().toString(), 101L, GameStatus.PLAYING, LocalDateTime.now(), false);
 
         return Stream.of(
-                // Delete entry when status is NONE
-                Arguments.of(existingNoneStatus, true, false),
-                // Update entry when status is not NONE
-                Arguments.of(existingPlayingStatus, false, true)
+                // Delete entry when status is NONE and is favorite -> Should publish event
+                Arguments.of(existingFavoriteNoneStatus, true, false, true),
+                // Update entry when status is not NONE and is favorite -> Should publish event
+                Arguments.of(existingFavoritePlayingStatus, false, true, true),
+                // Update entry when status is not NONE and is NOT favorite -> Should NOT publish event
+                Arguments.of(existingNotFavorite, false, true, false)
+        );
+    }
+    
+    public static Stream<Arguments> provideUserGame() {
+        return Stream.of(
+                Arguments.of(mock(UserGame.class)),
+                Arguments.of((UserGame) null)
         );
     }
 
