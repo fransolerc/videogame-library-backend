@@ -62,7 +62,7 @@ paths:
           description: Nombre del juego a buscar
           schema:
             type: string
-            maxLength: 255
+            maxLength: 100
       responses:
         '200':
           description: Búsqueda exitosa
