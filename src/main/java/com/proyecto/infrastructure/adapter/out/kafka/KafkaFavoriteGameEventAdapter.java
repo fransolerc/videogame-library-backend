@@ -1,6 +1,6 @@
 package com.proyecto.infrastructure.adapter.out.kafka;
 
-import com.proyecto.application.port.out.FavoriteGameEventPort;
+import com.proyecto.application.port.out.event.FavoriteGameEventInterface;
 import com.proyecto.domain.event.FavoriteGameEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.CompletableFuture;
 
 @Component
-public class KafkaFavoriteGameEventAdapter implements FavoriteGameEventPort {
+public class KafkaFavoriteGameEventAdapter implements FavoriteGameEventInterface {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaFavoriteGameEventAdapter.class);
 

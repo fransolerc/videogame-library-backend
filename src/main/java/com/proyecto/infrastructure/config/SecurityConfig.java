@@ -1,6 +1,6 @@
 package com.proyecto.infrastructure.config;
 
-import com.proyecto.application.port.out.UserRepositoryPort;
+import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
 import com.proyecto.infrastructure.security.jwt.JwtAuthenticationFilter;
 import com.proyecto.infrastructure.security.jwt.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
@@ -37,8 +37,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(UserRepositoryPort userRepositoryPort) {
-        return email -> userRepositoryPort.findByEmail(email)
+    public UserDetailsService userDetailsService(UserRepositoryInterface userRepositoryInterface) {
+        return email -> userRepositoryInterface.findByEmail(email)
                 .map(user -> org.springframework.security.core.userdetails.User.builder()
                         .username(user.email())
                         .password(user.password())

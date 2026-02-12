@@ -1,7 +1,7 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.proyecto.application.port.out.UserRepositoryPort;
+import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
 import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.security.jwt.JwtTokenProvider;
 import com.proyecto.videogames.generated.model.GameStatusDTO;
@@ -47,7 +47,7 @@ class LibraryControllerIntegrationTest {
     private WebApplicationContext webApplicationContext;
 
     @Autowired
-    private UserRepositoryPort userRepositoryPort;
+    private UserRepositoryInterface userRepositoryInterface;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -70,7 +70,7 @@ class LibraryControllerIntegrationTest {
                 .build();
 
         User testUser = new User(UUID.randomUUID().toString(), "testuser", "test@example.com", passwordEncoder.encode("password"));
-        userRepositoryPort.save(testUser);
+        userRepositoryInterface.save(testUser);
         userId = testUser.id();
 
         UserDetails userDetails = org.springframework.security.core.userdetails.User

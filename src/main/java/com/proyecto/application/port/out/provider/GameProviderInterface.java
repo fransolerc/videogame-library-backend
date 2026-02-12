@@ -1,4 +1,4 @@
-package com.proyecto.application.port.out;
+package com.proyecto.application.port.out.provider;
 
 import com.proyecto.domain.model.Game;
 import org.springframework.data.domain.Page;
@@ -9,7 +9,7 @@ import java.util.Optional;
 /**
  * Puerto de salida (driven port) para obtener datos de juegos desde un proveedor externo.
  */
-public interface GameProviderPort {
+public interface GameProviderInterface {
 
     /**
      * Busca un juego utilizando el identificador del proveedor externo.

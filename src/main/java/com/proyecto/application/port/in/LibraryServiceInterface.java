@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface LibraryInterface {
+public interface LibraryServiceInterface {
 
     Optional<UserGame> upsertGameInLibrary(UUID userId, Long gameId, GameStatus status);
 

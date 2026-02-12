@@ -1,6 +1,6 @@
 package com.proyecto.infrastructure.adapter.out.persistence;
 
-import com.proyecto.application.port.out.LibraryRepositoryPort;
+import com.proyecto.application.port.out.persistence.LibraryRepositoryInterface;
 import com.proyecto.domain.model.UserGame;
 import com.proyecto.infrastructure.adapter.out.persistence.entity.UserEntity;
 import com.proyecto.infrastructure.adapter.out.persistence.entity.UserGameEntity;
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-public class JpaLibraryAdapter implements LibraryRepositoryPort {
+public class JpaLibraryAdapter implements LibraryRepositoryInterface {
 
     private final SpringDataUserGameRepository userGameRepository;
     private final SpringDataUserRepository userRepository;

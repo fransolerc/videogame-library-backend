@@ -1,7 +1,7 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.in.UserInterface;
-import com.proyecto.application.port.out.UserRepositoryPort;
+import com.proyecto.application.port.in.UserServiceInterface;
+import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
 import com.proyecto.domain.exception.EmailAlreadyExistsException;
 import com.proyecto.domain.model.LoginResult;
 import com.proyecto.domain.model.User;
@@ -17,16 +17,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class UserService implements UserInterface {
+public class UserServiceService implements UserServiceInterface {
 
-    private final UserRepositoryPort userRepositoryPort;
+    private final UserRepositoryInterface userRepositoryInterface;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public UserService(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
-        this.userRepositoryPort = userRepositoryPort;
+    public UserServiceService(UserRepositoryInterface userRepositoryInterface, PasswordEncoder passwordEncoder,
+                              AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
+        this.userRepositoryInterface = userRepositoryInterface;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -34,13 +34,13 @@ public class UserService implements UserInterface {
 
     @Override
     public User registerUser(String username, String email, String password) {
-        userRepositoryPort.findByEmail(email).ifPresent(_ -> {
+        userRepositoryInterface.findByEmail(email).ifPresent(_ -> {
             throw new EmailAlreadyExistsException("El email '" + email + "' ya está registrado.");
         });
 
         String encodedPassword = passwordEncoder.encode(password);
         User newUser = new User(UUID.randomUUID().toString(), username, email, encodedPassword);
-        return userRepositoryPort.save(newUser);
+        return userRepositoryInterface.save(newUser);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class UserService implements UserInterface {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = jwtTokenProvider.generateToken(authentication);
 
-            User user = userRepositoryPort.findByEmail(email).orElseThrow();
+            User user = userRepositoryInterface.findByEmail(email).orElseThrow();
 
             return Optional.of(new LoginResult(jwt, user, user.username()));
         } catch (Exception _) {
