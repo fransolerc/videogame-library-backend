@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.1</version>
+		<version>4.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.proyecto</groupId>
@@ -17,8 +17,8 @@
 		<java.version>25</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<jjwt.version>0.12.5</jjwt.version>
-		<mapstruct.version>1.6.3</mapstruct.version>
+		<jjwt.version>0.13.0</jjwt.version>
+		<mapstruct.version>1.7.0.Beta2</mapstruct.version>
 		<jacoco.version>0.8.14</jacoco.version>
 	</properties>
 
@@ -27,7 +27,7 @@
 			<dependency>
 				<groupId>org.springdoc</groupId>
 				<artifactId>springdoc-openapi</artifactId>
-				<version>3.0.0</version>
+				<version>3.0.3</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -83,12 +83,12 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>3.0.0</version>
+			<version>3.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openapitools</groupId>
 			<artifactId>jackson-databind-nullable</artifactId>
-			<version>0.2.7</version>
+			<version>0.2.9</version>
 		</dependency>
 
 		<dependency>
