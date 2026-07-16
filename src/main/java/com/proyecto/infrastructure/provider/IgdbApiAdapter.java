@@ -87,8 +87,7 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
     @Override
     @Cacheable("igdb-game-by-id")
     public Optional<Game> findByExternalId(Long externalId) {
-        if (rateLimiterInterrupted()) return Optional.empty();
-        ensureAuthentication();
+        if (rateLimiterInterrupted() || !ensureAuthentication()) return Optional.empty();
 
         HttpHeaders headers = createHeaders();
         String requestBody = String.format("%s where id = %s;", FIELDS_GAME_BASE, externalId);
@@ -115,8 +114,7 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
             return Collections.emptyList();
         }
 
-        if (rateLimiterInterrupted()) return Collections.emptyList();
-        ensureAuthentication();
+        if (rateLimiterInterrupted() || !ensureAuthentication()) return Collections.emptyList();
 
         HttpHeaders headers = createHeaders();
         String ids = externalIds.stream().map(String::valueOf).collect(Collectors.joining(","));
@@ -142,8 +140,7 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
     @Override
     @Cacheable("igdb-games-by-name")
     public List<Game> searchByName(String name) {
-        if (rateLimiterInterrupted()) return Collections.emptyList();
-        ensureAuthentication();
+        if (rateLimiterInterrupted() || !ensureAuthentication()) return Collections.emptyList();
 
         HttpHeaders headers = createHeaders();
         String requestBody = String.format("search \"%s\"; %s limit 50;", name, FIELDS_GAME_BASE);
@@ -168,11 +165,10 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
     @Override
     @Cacheable("igdb-games-by-filter")
     public Page<Game> filterGames(String filter, String sort, Integer limit, Integer offset) {
-        if (rateLimiterInterrupted()) return Page.empty();
-        ensureAuthentication();
+        if (rateLimiterInterrupted() || !ensureAuthentication()) return Page.empty();
 
         HttpHeaders headers = createHeaders();
-        
+
         long totalElements = fetchTotalCount(filter, headers);
         if (totalElements == 0) {
             return Page.empty();
@@ -181,7 +177,7 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
         if (rateLimiterInterrupted()) return Page.empty();
 
         List<Game> games = fetchGamesPage(filter, sort, limit, offset, headers);
-        
+
         int pageSize = limit != null ? limit : 50;
         int pageOffset = offset != null ? offset : 0;
         int pageNumber = pageOffset / pageSize;
@@ -241,15 +237,14 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
 
         requestBodyBuilder.append(" limit ").append(pageSize).append(";");
         requestBodyBuilder.append(" offset ").append(pageOffset).append(";");
-        
+
         return requestBodyBuilder.toString();
     }
 
     @Override
     @Cacheable("igdb-platforms")
     public List<Platform> listPlatforms() {
-        if (rateLimiterInterrupted()) return Collections.emptyList();
-        ensureAuthentication();
+        if (rateLimiterInterrupted() || !ensureAuthentication()) return Collections.emptyList();
 
         HttpHeaders headers = createHeaders();
         String requestBody = "fields name, generation, platform_type; sort name asc; limit 500;";
@@ -282,10 +277,18 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
         }
     }
 
-    private void ensureAuthentication() {
+    /**
+     * Garantiza que exista un token de acceso valido antes de llamar a IGDB.
+     *
+     * @return {@code true} si hay un token utilizable tras esta llamada (ya existia o se
+     *         obtuvo uno nuevo), {@code false} si la autenticacion fallo y por tanto no
+     *         debe intentarse ninguna peticion a IGDB (evita enviar "Bearer null").
+     */
+    private boolean ensureAuthentication() {
         if (isTokenInvalid()) {
-            authenticate();
+            return authenticate();
         }
+        return true;
     }
 
     private HttpHeaders createHeaders() {
@@ -296,8 +299,14 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
         return headers;
     }
 
-    private void authenticate() {
-        if (rateLimiterInterrupted()) return;
+    /**
+     * Intenta autenticarse contra Twitch/IGDB.
+     *
+     * @return {@code true} si se obtuvo y almaceno un token valido, {@code false} en
+     *         cualquier otro caso (interrupcion del rate limiter o fallo de la llamada).
+     */
+    private boolean authenticate() {
+        if (rateLimiterInterrupted()) return false;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -315,10 +324,17 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
                 this.accessToken = response.accessToken();
                 this.tokenExpirationTime = System.currentTimeMillis() + (response.expiresIn() * 1000);
                 logger.info("Successfully authenticated with IGDB/Twitch API.");
+                return true;
             }
         } catch (Exception e) {
             logger.error("Error during authentication with IGDB/Twitch API", e);
         }
+
+        // Autenticacion fallida: invalidamos explicitamente cualquier token previo para
+        // que ensureAuthentication() no lo de por bueno en la siguiente llamada.
+        this.accessToken = null;
+        this.tokenExpirationTime = 0;
+        return false;
     }
 
     private boolean isTokenInvalid() {
@@ -328,7 +344,7 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
     private Game mapToDomain(IgdbGameResponse igdbGame) {
         List<String> genreNames = igdbGame.genres() != null ? igdbGame.genres().stream().map(IgdbGenreResponse::name).toList() : Collections.emptyList();
         LocalDate releaseDate = igdbGame.releaseDate() != null ? Instant.ofEpochSecond(igdbGame.releaseDate()).atZone(ZoneId.systemDefault()).toLocalDate() : null;
-        
+
         String coverUrl = (igdbGame.cover() != null && igdbGame.cover().imageId() != null)
                 ? "https://images.igdb.com/igdb/image/upload/t_cover_big/" + igdbGame.cover().imageId() + ".jpg"
                 : PLACEHOLDER_IMAGE_URL;
