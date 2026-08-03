@@ -9,3 +9,42 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  datasource:
+    url: jdbc:h2:file:./data/videogamedb;DB_CLOSE_DELAY=-1
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+  kafka:
+    bootstrap-servers: kafka:9092
+    topic:
+      favorite-games: favorite-games-topic
+
+# --- IGDB / Twitch API ---
+# Credenciales de https://dev.twitch.tv/console/apps
+# Requeridas: sin ellas el contexto de Spring no levanta (@Value sin default en IgdbApiConfig)
+igdb:
+  client-id: "eo59qg987lxp3su6oeaxzlxqokwbb3"
+  client-secret: "zz4z7lrk723utiz7lstdc04806bqzl"
+  api:
+    base-url: "https://api.igdb.com/v4"
+  auth:
+    url: "https://id.twitch.tv/oauth2/token"
+
+# --- JWT ---
+# jwt.secret debe ser una clave Base64. Genera una nueva para tu entorno, ej.:
+#   openssl rand -base64 64
+jwt:
+  # Clave generada localmente SOLO para desarrollo. Nunca reutilices esta en producción
+  # ni la subas a un repo compartido — regenera con: openssl rand -base64 64
+  secret: "SfBvmUB5dI3MBBhM3i5m3fyIgUGzdq04hyapKbuZnonuino11CAVsYYGlTnjnamHrAEJPmxc1mUGljZeGT7xyQ=="
+  expiration:
+    ms: 86400000
+
+# --- CORS ---
+cors:
+  allowed-origins: "http://localhost:4200"
