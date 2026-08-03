@@ -1,0 +1,48 @@
+server:
+  port: 8080
+  address: 0.0.0.0
+  tomcat:
+    apr:
+      enabled: false
+spring:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  datasource:
+    url: jdbc:h2:file:./data/videogamedb;DB_CLOSE_DELAY=-1
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    topic:
+      favorite-games: favorite-games-topic
+
+# --- IGDB / Twitch API ---
+# Credenciales de https://dev.twitch.tv/console/apps
+# Se leen de variables de entorno -- copia .env.example a .env y rellena los valores reales.
+igdb:
+  client-id: ${IGDB_CLIENT_ID}
+  client-secret: ${IGDB_CLIENT_SECRET}
+  api:
+    base-url: "https://api.igdb.com/v4"
+  auth:
+    url: "https://id.twitch.tv/oauth2/token"
+
+# --- JWT ---
+jwt:
+  # Se lee de la variable de entorno JWT_SECRET. Genera una clave propia con:
+  #   openssl rand -base64 64
+  secret: ${JWT_SECRET}
+  expiration:
+    ms: 86400000
+
+# --- CORS ---
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
