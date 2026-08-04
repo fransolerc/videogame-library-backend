@@ -1,6 +1,7 @@
 package com.proyecto.infrastructure.adapter.in.web.error;
 
 import com.proyecto.domain.exception.EmailAlreadyExistsException;
+import com.proyecto.domain.exception.NotFoundException;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,18 @@ public class GlobalExceptionHandler {
                 PATH, request.getDescription(false).substring(4)
         );
         return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Object> handleNotFoundException(NotFoundException ex, WebRequest request) {
+        Map<String, Object> body = Map.of(
+                TIMESTAMP, LocalDateTime.now(),
+                STATUS, HttpStatus.NOT_FOUND.value(),
+                ERROR, "Not Found",
+                MESSAGE, ex.getMessage(),
+                PATH, request.getDescription(false).substring(4)
+        );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -6,7 +6,6 @@ import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.security.jwt.JwtTokenProvider;
 import com.proyecto.videogames.generated.model.GameStatusDTO;
 import com.proyecto.videogames.generated.model.UpdateGameStatusRequestDTO;
-import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,6 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -148,12 +146,10 @@ class LibraryControllerIntegrationTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenRemovingNonExistentFavorite() {
-        Exception exception = assertThrows(ServletException.class, () -> mockMvc.perform(delete("/users/{userId}/games/{gameId}/favorite", userId, 99999999L)
-                        .header("Authorization", "Bearer " + jwtToken)));
-
-        Throwable rootCause = exception.getCause();
-        assertInstanceOf(RuntimeException.class, rootCause);
-        assertTrue(rootCause.getMessage().contains("Game not found in library"));
+    void shouldReturn404WhenRemovingNonExistentFavorite() throws Exception {
+        mockMvc.perform(delete("/users/{userId}/games/{gameId}/favorite", userId, 99999999L)
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", is("Game not found in library")));
     }
 }
