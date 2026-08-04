@@ -30,7 +30,7 @@ class GameServiceUnitTest {
     private GameProviderInterface gameProviderInterface;
 
     @InjectMocks
-    private GameServiceService gameService;
+    private GameService gameService;
 
     @ParameterizedTest
     @MethodSource("provideSearchQueriesAndExpectedGames")

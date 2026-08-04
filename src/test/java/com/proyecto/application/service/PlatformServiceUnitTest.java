@@ -26,7 +26,7 @@ class PlatformServiceUnitTest {
     private PlatformProviderInterface platformProviderInterface;
 
     @InjectMocks
-    private PlatformServiceService platformService;
+    private PlatformService platformService;
 
     @ParameterizedTest
     @MethodSource("providePlatformLists")
