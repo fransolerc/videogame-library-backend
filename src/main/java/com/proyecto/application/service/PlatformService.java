@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class PlatformServiceService implements PlatformServiceInterface {
+public class PlatformService implements PlatformServiceInterface {
 
     private final PlatformProviderInterface platformProviderInterface;
 
-    public PlatformServiceService(PlatformProviderInterface platformProviderInterface) {
+    public PlatformService(PlatformProviderInterface platformProviderInterface) {
         this.platformProviderInterface = platformProviderInterface;
     }
 

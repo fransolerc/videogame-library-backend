@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class GameServiceService implements GameServiceInterface {
+public class GameService implements GameServiceInterface {
 
     private final GameProviderInterface gameProviderInterface;
 
-    public GameServiceService(GameProviderInterface gameProviderInterface) {
+    public GameService(GameProviderInterface gameProviderInterface) {
         this.gameProviderInterface = gameProviderInterface;
     }
 

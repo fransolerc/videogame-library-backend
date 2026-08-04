@@ -17,15 +17,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class UserServiceService implements UserServiceInterface {
+public class UserService implements UserServiceInterface {
 
     private final UserRepositoryInterface userRepositoryInterface;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public UserServiceService(UserRepositoryInterface userRepositoryInterface, PasswordEncoder passwordEncoder,
-                              AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
+    public UserService(UserRepositoryInterface userRepositoryInterface, PasswordEncoder passwordEncoder,
+                       AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
         this.userRepositoryInterface = userRepositoryInterface;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;

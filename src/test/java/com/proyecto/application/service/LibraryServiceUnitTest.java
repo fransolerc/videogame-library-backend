@@ -56,7 +56,7 @@ class LibraryServiceUnitTest {
     private UserDetails userDetails;
 
     @InjectMocks
-    private LibraryServiceService libraryService;
+    private LibraryService libraryService;
 
     private final UUID userId = UUID.randomUUID();
     private final Long gameId = 123L;

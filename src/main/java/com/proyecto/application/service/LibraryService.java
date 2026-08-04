@@ -6,7 +6,9 @@ import com.proyecto.application.port.out.provider.GameProviderInterface;
 import com.proyecto.application.port.out.persistence.LibraryRepositoryInterface;
 import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
 import com.proyecto.domain.event.FavoriteGameEvent;
+import com.proyecto.domain.exception.GameNotFoundException;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
+import com.proyecto.domain.exception.UserGameNotFoundException;
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.UserGame;
 import org.springframework.data.domain.Page;
@@ -22,15 +24,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class LibraryServiceService implements LibraryServiceInterface {
+public class LibraryService implements LibraryServiceInterface {
 
     private final LibraryRepositoryInterface libraryRepositoryInterface;
     private final GameProviderInterface gameProviderInterface;
     private final UserRepositoryInterface userRepositoryInterface;
     private final FavoriteGameEventInterface favoriteGameEventInterface;
 
-    public LibraryServiceService(LibraryRepositoryInterface libraryRepositoryInterface, GameProviderInterface gameProviderInterface,
-                                 UserRepositoryInterface userRepositoryInterface, FavoriteGameEventInterface favoriteGameEventInterface) {
+    public LibraryService(LibraryRepositoryInterface libraryRepositoryInterface, GameProviderInterface gameProviderInterface,
+                          UserRepositoryInterface userRepositoryInterface, FavoriteGameEventInterface favoriteGameEventInterface) {
         this.libraryRepositoryInterface = libraryRepositoryInterface;
         this.gameProviderInterface = gameProviderInterface;
         this.userRepositoryInterface = userRepositoryInterface;
@@ -43,7 +45,7 @@ public class LibraryServiceService implements LibraryServiceInterface {
         String userIdString = userId.toString();
 
         var _ = gameProviderInterface.findByExternalId(gameId)
-                .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
+                .orElseThrow(() -> new GameNotFoundException("Game with id " + gameId + " not found"));
 
         Optional<UserGame> existingEntryOpt = libraryRepositoryInterface.findByUserIdAndGameId(userIdString, gameId);
 
@@ -96,7 +98,7 @@ public class LibraryServiceService implements LibraryServiceInterface {
                 })
                 .orElseGet(() -> {
                     var _ = gameProviderInterface.findByExternalId(gameId)
-                            .orElseThrow(() -> new RuntimeException("Game with id " + gameId + " not found"));
+                            .orElseThrow(() -> new GameNotFoundException("Game with id " + gameId + " not found"));
                     UserGame newFavorite = new UserGame(userIdString, gameId, GameStatus.NONE, LocalDateTime.now(), true);
                     return libraryRepositoryInterface.save(newFavorite);
                 });
@@ -113,7 +115,7 @@ public class LibraryServiceService implements LibraryServiceInterface {
         checkAuthorization(userId);
         String userIdString = userId.toString();
         UserGame userGame = libraryRepositoryInterface.findByUserIdAndGameId(userIdString, gameId)
-                .orElseThrow(() -> new RuntimeException("Game not found in library"));
+                .orElseThrow(() -> new UserGameNotFoundException("Game not found in library"));
 
         // Solo publicar el evento si el juego era realmente un favorito
         if (Boolean.TRUE.equals(userGame.isFavorite())) {

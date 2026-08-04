@@ -44,7 +44,7 @@ class UserServiceUnitTest {
     private Authentication authentication;
 
     @InjectMocks
-    private UserServiceService userService;
+    private UserService userService;
 
     private final String username = "testuser";
     private final String email = "test@example.com";
