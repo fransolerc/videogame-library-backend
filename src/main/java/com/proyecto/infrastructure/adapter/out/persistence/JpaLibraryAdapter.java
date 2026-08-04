@@ -1,6 +1,8 @@
 package com.proyecto.infrastructure.adapter.out.persistence;
 
 import com.proyecto.application.port.out.persistence.LibraryRepositoryInterface;
+import com.proyecto.domain.exception.UserGameNotFoundException;
+import com.proyecto.domain.exception.UserNotFoundException;
 import com.proyecto.domain.model.UserGame;
 import com.proyecto.infrastructure.adapter.out.persistence.entity.UserEntity;
 import com.proyecto.infrastructure.adapter.out.persistence.entity.UserGameEntity;
@@ -28,7 +30,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryInterface {
     @Override
     public UserGame save(UserGame userGame) {
         UserEntity userEntity = userRepository.findById(userGame.userId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         UserGameEntity entity = toEntity(userGame, userEntity);
         UserGameEntity savedEntity = userGameRepository.save(entity);
@@ -50,7 +52,7 @@ public class JpaLibraryAdapter implements LibraryRepositoryInterface {
     @Override
     public UserGame update(UserGame userGame) {
         UserGameEntity entity = userGameRepository.findByUserIdAndGameId(userGame.userId(), userGame.gameId())
-                .orElseThrow(() -> new RuntimeException("UserGame not found"));
+                .orElseThrow(() -> new UserGameNotFoundException("UserGame not found"));
 
         entity.setStatus(userGame.status());
         entity.setIsFavorite(userGame.isFavorite());
