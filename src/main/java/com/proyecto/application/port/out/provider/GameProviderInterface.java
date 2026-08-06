@@ -20,6 +20,16 @@ public interface GameProviderInterface {
     Optional<Game> findByExternalId(Long externalId);
 
     /**
+     * Comprueba si existe un juego con el identificador dado en el proveedor externo, sin
+     * traer el payload completo del juego. Pensado para validaciones donde solo interesa
+     * confirmar existencia (ej. antes de añadir un juego a la biblioteca de un usuario).
+     *
+     * @param externalId El ID del juego en el sistema del proveedor (ej. IGDB).
+     * @return {@code true} si el juego existe, {@code false} en caso contrario.
+     */
+    boolean existsByExternalId(Long externalId);
+
+    /**
      * Busca múltiples juegos por sus identificadores externos en una sola llamada.
      *
      * @param externalIds Una lista de ID de juegos en el sistema del proveedor.

@@ -15,6 +15,7 @@ public class CacheConfig {
         ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
         cacheManager.setCacheNames(List.of(
                 "igdb-game-by-id",
+                "igdb-game-exists",
                 "igdb-games-by-ids",
                 "igdb-games-by-name",
                 "igdb-games-by-filter",

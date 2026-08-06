@@ -44,8 +44,7 @@ public class LibraryService implements LibraryServiceInterface {
         checkAuthorization(userId);
         String userIdString = userId.toString();
 
-        var _ = gameProviderInterface.findByExternalId(gameId)
-                .orElseThrow(() -> new GameNotFoundException("Game with id " + gameId + " not found"));
+        requireGameExists(gameId);
 
         Optional<UserGame> existingEntryOpt = libraryRepositoryInterface.findByUserIdAndGameId(userIdString, gameId);
 
@@ -97,8 +96,7 @@ public class LibraryService implements LibraryServiceInterface {
                     return libraryRepositoryInterface.update(updated);
                 })
                 .orElseGet(() -> {
-                    var _ = gameProviderInterface.findByExternalId(gameId)
-                            .orElseThrow(() -> new GameNotFoundException("Game with id " + gameId + " not found"));
+                    requireGameExists(gameId);
                     UserGame newFavorite = new UserGame(userIdString, gameId, GameStatus.NONE, LocalDateTime.now(), true);
                     return libraryRepositoryInterface.save(newFavorite);
                 });
@@ -135,6 +133,17 @@ public class LibraryService implements LibraryServiceInterface {
     public Page<UserGame> listFavoriteGames(UUID userId, Pageable pageable) {
         checkAuthorization(userId);
         return libraryRepositoryInterface.findByUserIdAndIsFavoriteTrue(userId.toString(), pageable);
+    }
+
+    /**
+     * Verifica que el juego exista en el proveedor externo, sin traer su payload completo.
+     *
+     * @throws GameNotFoundException si el juego no existe.
+     */
+    private void requireGameExists(Long gameId) {
+        if (!gameProviderInterface.existsByExternalId(gameId)) {
+            throw new GameNotFoundException("Game with id " + gameId + " not found");
+        }
     }
 
     private void checkAuthorization(UUID requestedUserId) {

@@ -108,6 +108,27 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
     }
 
     @Override
+    @Cacheable("igdb-game-exists")
+    public boolean existsByExternalId(Long externalId) {
+        if (rateLimiterInterrupted() || !ensureAuthentication()) return false;
+
+        HttpHeaders headers = createHeaders();
+        String requestBody = "where id = " + externalId + ";";
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<IgdbCountResponse> response = restTemplate.postForEntity(apiConfig.getApiBaseUrl() + GAMES_COUNT_URL, entity, IgdbCountResponse.class);
+            IgdbCountResponse body = response.getBody();
+
+            return response.getStatusCode() == HttpStatus.OK && body != null && body.count() > 0;
+        } catch (Exception e) {
+            logger.error("Error checking existence of game with id {} from IGDB", externalId, e);
+        }
+
+        return false;
+    }
+
+    @Override
     @Cacheable("igdb-games-by-ids")
     public List<Game> findMultipleByExternalIds(List<Long> externalIds) {
         if (externalIds == null || externalIds.isEmpty()) {
