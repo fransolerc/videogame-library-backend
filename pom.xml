@@ -71,11 +71,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-test-autoconfigure</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
@@ -88,7 +83,7 @@
 		<dependency>
 			<groupId>org.openapitools</groupId>
 			<artifactId>jackson-databind-nullable</artifactId>
-			<version>0.2.9</version>
+			<version>0.2.13</version>
 		</dependency>
 
 		<dependency>
@@ -154,7 +149,6 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- plugin maven-compiler-plugin: queda así -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -209,25 +203,7 @@
 				</executions>
 			</plugin>
 
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>3.6.1</version>
-				<executions>
-					<execution>
-						<id>add-source</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>add-source</goal>
-						</goals>
-						<configuration>
-							<sources>
-								<source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
-							</sources>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+
 		</plugins>
 	</build>
 </project>
