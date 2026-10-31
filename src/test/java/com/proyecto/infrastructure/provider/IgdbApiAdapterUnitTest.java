@@ -462,4 +462,55 @@ class IgdbApiAdapterUnitTest {
             assertTrue(adapter.listPlatforms().isEmpty());
         }
     }
+
+    @Nested
+    class ExistsByExternalId {
+
+        @Test
+        void shouldReturnTrueWhenCountIsPositive() {
+            expectSuccessfulAuth("tok");
+            mockServer.expect(requestTo(BASE_URL + "/games/count"))
+                    .andExpect(method(HttpMethod.POST))
+                    .andExpect(content().string("where id = 42;"))
+                    .andRespond(withSuccess("{\"count\":1}", MediaType.APPLICATION_JSON));
+
+            assertTrue(adapter.existsByExternalId(42L));
+            mockServer.verify();
+        }
+
+        @Test
+        void shouldReturnFalseWhenCountIsZero() {
+            expectSuccessfulAuth("tok");
+            mockServer.expect(requestTo(BASE_URL + "/games/count"))
+                    .andRespond(withSuccess("{\"count\":0}", MediaType.APPLICATION_JSON));
+
+            assertFalse(adapter.existsByExternalId(42L));
+        }
+
+        @Test
+        void shouldReturnFalseOnServerError() {
+            expectSuccessfulAuth("tok");
+            mockServer.expect(requestTo(BASE_URL + "/games/count"))
+                    .andRespond(withServerError());
+
+            assertFalse(adapter.existsByExternalId(42L));
+        }
+
+        @Test
+        void shouldReturnFalseAndNotCallIgdbWhenAuthenticationFails() {
+            expectFailedAuth();
+
+            assertFalse(adapter.existsByExternalId(42L));
+            mockServer.verify();
+        }
+
+        @Test
+        void shouldReturnFalseWhenRateLimiterInterrupted() throws InterruptedException {
+            doThrow(new InterruptedException()).when(blockingBucket).consume(1);
+
+            assertFalse(adapter.existsByExternalId(42L));
+            assertTrue(Thread.currentThread().isInterrupted());
+            mockServer.verify();
+        }
+    }
 }

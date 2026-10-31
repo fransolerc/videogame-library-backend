@@ -25,10 +25,15 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import com.proyecto.application.port.out.event.FavoriteGameEventInterface;
+import com.proyecto.infrastructure.provider.IgdbApiAdapter;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -40,6 +45,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class LibraryControllerIntegrationTest {
+
+    // dentro de la clase
+    @MockitoBean
+    private IgdbApiAdapter igdbApiAdapter;
+
+    @MockitoBean
+    private FavoriteGameEventInterface favoriteGameEventInterface;
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -62,6 +74,7 @@ class LibraryControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        when(igdbApiAdapter.existsByExternalId(anyLong())).thenReturn(true);
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(webApplicationContext)
                 .apply(springSecurity())

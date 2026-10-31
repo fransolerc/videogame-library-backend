@@ -4,8 +4,8 @@ import com.proyecto.application.port.out.event.FavoriteGameEventInterface;
 import com.proyecto.application.port.out.provider.GameProviderInterface;
 import com.proyecto.application.port.out.persistence.LibraryRepositoryInterface;
 import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
+import com.proyecto.domain.exception.GameNotFoundException;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
-import com.proyecto.domain.model.Game;
 import com.proyecto.domain.model.GameStatus;
 import com.proyecto.domain.model.User;
 import com.proyecto.domain.model.UserGame;
@@ -68,7 +68,7 @@ class LibraryServiceUnitTest {
         lenient().when(authentication.isAuthenticated()).thenReturn(true);
         lenient().when(authentication.getPrincipal()).thenReturn(userDetails);
         lenient().when(userDetails.getUsername()).thenReturn(userEmail);
-        lenient().when(gameProviderInterface.findByExternalId(anyLong())).thenReturn(Optional.of(mock(Game.class)));
+        lenient().when(gameProviderInterface.existsByExternalId(anyLong())).thenReturn(true);
         
         User user = new User(userId.toString(), "testuser", userEmail, "password");
         lenient().when(userRepositoryInterface.findByEmail(userEmail)).thenReturn(Optional.of(user));
@@ -286,6 +286,42 @@ class LibraryServiceUnitTest {
 
             assertDoesNotThrow(() -> libraryService.listUserLibrary(userId));
             verify(userRepositoryInterface).findByEmail("user-principal-string");
+        }
+    }
+
+    @Nested
+    class GameExistenceTests {
+        @Test
+        void upsertGameInLibrary_shouldThrow_whenGameDoesNotExist() {
+            when(gameProviderInterface.existsByExternalId(gameId)).thenReturn(false);
+
+            assertThrows(GameNotFoundException.class,
+                    () -> libraryService.upsertGameInLibrary(userId, gameId, GameStatus.PLAYING));
+
+            verify(libraryRepositoryInterface, never()).save(any());
+            verify(libraryRepositoryInterface, never()).update(any());
+        }
+
+        @Test
+        void addGameToFavorites_shouldThrowAndNotPublishEvent_whenNewEntryAndGameDoesNotExist() {
+            when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
+            when(gameProviderInterface.existsByExternalId(gameId)).thenReturn(false);
+
+            assertThrows(GameNotFoundException.class, () -> libraryService.addGameToFavorites(userId, gameId));
+
+            verify(libraryRepositoryInterface, never()).save(any());
+            verify(favoriteGameEventInterface, never()).publishFavoriteGameEvent(any());
+        }
+
+        @Test
+        void addGameToFavorites_shouldNotCheckExistence_whenEntryAlreadyInLibrary() {
+            UserGame existing = new UserGame(userId.toString(), gameId, GameStatus.PLAYING, LocalDateTime.now(), false);
+            when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existing));
+            when(libraryRepositoryInterface.update(any(UserGame.class))).thenAnswer(i -> i.getArgument(0));
+
+            libraryService.addGameToFavorites(userId, gameId);
+
+            verify(gameProviderInterface, never()).existsByExternalId(anyLong());
         }
     }
 }
