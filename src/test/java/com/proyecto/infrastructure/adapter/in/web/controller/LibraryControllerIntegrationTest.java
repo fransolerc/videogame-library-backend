@@ -1,6 +1,6 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
 import com.proyecto.domain.model.User;
 import com.proyecto.infrastructure.security.jwt.JwtTokenProvider;
@@ -111,7 +111,8 @@ class LibraryControllerIntegrationTest {
                         .header("Authorization", "Bearer " + jwtToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.addedAt").isString());
     }
 
     @Test

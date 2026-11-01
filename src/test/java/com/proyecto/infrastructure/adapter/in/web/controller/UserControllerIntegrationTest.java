@@ -1,6 +1,6 @@
 package com.proyecto.infrastructure.adapter.in.web.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.proyecto.videogames.generated.model.LoginRequestDTO;
 import com.proyecto.videogames.generated.model.UserRegistrationRequestDTO;
 import org.junit.jupiter.api.BeforeEach;
