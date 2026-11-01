@@ -81,12 +81,6 @@
 			<version>3.0.3</version>
 		</dependency>
 		<dependency>
-			<groupId>org.openapitools</groupId>
-			<artifactId>jackson-databind-nullable</artifactId>
-			<version>0.2.13</version>
-		</dependency>
-
-		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
 			<version>${jjwt.version}</version>
@@ -193,10 +187,10 @@
                             <generateModels>true</generateModels>
 							<configOptions>
 								<interfaceOnly>true</interfaceOnly>
-								<dateLibrary>java8</dateLibrary>
 								<useTags>true</useTags>
-								<useJakarta>true</useJakarta>
 								<useSpringBoot3>true</useSpringBoot3>
+								<openApiNullable>false</openApiNullable>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
 							</configOptions>
 						</configuration>
 					</execution>
