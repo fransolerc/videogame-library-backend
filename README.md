@@ -1,8 +1,8 @@
 # Video Game Library Backend
 
-This project is a backend for a video game library application, built with a **Hexagonal Architecture**. It integrates with the [IGDB API](https://api-docs.igdb.com/) to fetch real-time game data and uses **Apache Kafka** for event publishing.
+This project is a backend for a video game library application, built with a **Hexagonal Architecture**. It integrates with the [IGDB API](https://api-docs.igdb.com/) to fetch real-time game data.
 
-The goal is to serve as a practical example of a modern, clean, and scalable software architecture, including a robust authentication system and asynchronous communication.
+The goal is to serve as a practical example of a modern, clean, and scalable software architecture, including a robust authentication system.
 
 ---
 
@@ -17,7 +17,6 @@ The goal is to serve as a practical example of a modern, clean, and scalable sof
 - **Hexagonal Architecture (Ports and Adapters)**
 - **Spring Security**: Authentication and authorization (JWT).
 - **JSON Web Tokens (JWT)**: For stateless authentication.
-- **Apache Kafka**: For asynchronous event messaging.
 - **JJWT**: Library for JWT implementation.
 - **JUnit 5 / Mockito**: For unit and integration testing.
 
@@ -29,22 +28,19 @@ The goal is to serve as a practical example of a modern, clean, and scalable sof
 
 - **Docker Desktop** (or Docker Engine) installed and running.
 - An API client like Postman, Insomnia, or just your browser.
-- **JDK 17** or higher.
+- **JDK 25** or higher.
 - **Maven 3.8** or higher.
 
 ### Mandatory Configuration
 
-Before running the application, you must provide your IGDB/Twitch API credentials and a secret key for JWT.
+Credentials are read from environment variables. Copy the example file and fill in your values:
 
-1.  Locate the `src/main/resources/application.yml` file.
-2.  Ensure the following properties are configured with your values:
-    ```yaml
-    igdb:
-      client-id: "YOUR_TWITCH_CLIENT_ID"
-      client-secret: "YOUR_TWITCH_CLIENT_SECRET"
-    jwt:
-      secret: "a-very-long-and-secure-secret-key-that-you-should-change-in-production" # Change this in production!
-    ```
+```sh
+cp .env.example .env
+```
+
+- `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`: from https://dev.twitch.tv/console/apps
+- `JWT_SECRET`: a Base64 string, generate one with `openssl rand -base64 64`
 
 ### Running with Docker
 
@@ -54,28 +50,14 @@ Before running the application, you must provide your IGDB/Twitch API credential
         docker build -t videogame-library-backend .
         ```
 
-2.  **Start Kafka and the application**:
-    -   If you have a `docker-compose.yml` for Kafka, make sure to start it first (`docker-compose up -d`).
-    -   Then, run the application Docker container:
-        ```sh
-        docker run -p 8080:8080 videogame-library-backend
-        ```
-    -   The application will start at `http://localhost:8080`.
-
 ### Running the Application (Traditional Method)
 
-1.  **Start Kafka**:
-    -   In the project root, run the following command to start a Kafka and Zookeeper broker:
-        ```sh
-        docker-compose up -d
-        ```
-
-2.  **Generate code and compile**:
+1.  **Generate code and compile**:
     ```sh
     mvn clean install
     ```
 
-3.  **Run the application**:
+2.  **Run the application**:
     ```sh
     mvn spring-boot:run
     ```
@@ -150,6 +132,5 @@ The project follows the principles of **Hexagonal Architecture** to separate the
     -   **`adapter.in.web`**: Input adapters (Driving Adapters), such as REST controllers.
     -   **`adapter.out.persistence`**: Output adapters (Driven Adapters) for databases (JPA).
     -   **`adapter.out.provider`**: Output adapters for external providers (IGDB API).
-    -   **`adapter.out.kafka`**: Output adapters for publishing events to Kafka.
     -   **`security`**: Security configuration (JWT).
     -   **`config`**: General application configurations.
