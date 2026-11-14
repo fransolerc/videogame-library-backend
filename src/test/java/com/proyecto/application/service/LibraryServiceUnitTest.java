@@ -203,7 +203,7 @@ class LibraryServiceUnitTest {
 
     @ParameterizedTest
     @MethodSource("provideRemoveGameFromFavoritesArguments")
-    void removeGameFromFavorites_shouldHandleAllCases(UserGame existingEntry, boolean shouldDelete, boolean shouldUpdate, boolean shouldPublishEvent) {
+    void removeGameFromFavorites_shouldHandleAllCases(UserGame existingEntry, boolean shouldDelete, boolean shouldUpdate) {
         // Arrange
         when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.of(existingEntry));
         if (shouldUpdate) {
@@ -298,7 +298,7 @@ class LibraryServiceUnitTest {
         }
 
         @Test
-        void addGameToFavorites_shouldThrowAndNotPublishEvent_whenNewEntryAndGameDoesNotExist() {
+        void addGameToFavorites_shouldThrow_whenNewEntryAndGameDoesNotExist() {
             when(libraryRepositoryInterface.findByUserIdAndGameId(userId.toString(), gameId)).thenReturn(Optional.empty());
             when(gameProviderInterface.existsByExternalId(gameId)).thenReturn(false);
 

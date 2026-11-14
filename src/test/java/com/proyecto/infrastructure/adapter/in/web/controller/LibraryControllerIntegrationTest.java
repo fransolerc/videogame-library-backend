@@ -45,7 +45,6 @@ import com.proyecto.infrastructure.provider.IgdbApiAdapter;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class LibraryControllerIntegrationTest {
 
-    // dentro de la clase
     @MockitoBean
     private IgdbApiAdapter igdbApiAdapter;
 
