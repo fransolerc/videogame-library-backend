@@ -1,11 +1,9 @@
 package com.proyecto.application.service;
 
 import com.proyecto.application.port.in.LibraryServiceInterface;
-import com.proyecto.application.port.out.event.FavoriteGameEventInterface;
 import com.proyecto.application.port.out.provider.GameProviderInterface;
 import com.proyecto.application.port.out.persistence.LibraryRepositoryInterface;
 import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
-import com.proyecto.domain.event.FavoriteGameEvent;
 import com.proyecto.domain.exception.GameNotFoundException;
 import com.proyecto.domain.exception.UnauthorizedLibraryAccessException;
 import com.proyecto.domain.exception.UserGameNotFoundException;
@@ -29,14 +27,12 @@ public class LibraryService implements LibraryServiceInterface {
     private final LibraryRepositoryInterface libraryRepositoryInterface;
     private final GameProviderInterface gameProviderInterface;
     private final UserRepositoryInterface userRepositoryInterface;
-    private final FavoriteGameEventInterface favoriteGameEventInterface;
 
     public LibraryService(LibraryRepositoryInterface libraryRepositoryInterface, GameProviderInterface gameProviderInterface,
-                          UserRepositoryInterface userRepositoryInterface, FavoriteGameEventInterface favoriteGameEventInterface) {
+                          UserRepositoryInterface userRepositoryInterface) {
         this.libraryRepositoryInterface = libraryRepositoryInterface;
         this.gameProviderInterface = gameProviderInterface;
         this.userRepositoryInterface = userRepositoryInterface;
-        this.favoriteGameEventInterface = favoriteGameEventInterface;
     }
 
     @Override
@@ -90,7 +86,7 @@ public class LibraryService implements LibraryServiceInterface {
         checkAuthorization(userId);
         String userIdString = userId.toString();
 
-        UserGame updatedUserGame = libraryRepositoryInterface.findByUserIdAndGameId(userIdString, gameId)
+        return libraryRepositoryInterface.findByUserIdAndGameId(userIdString, gameId)
                 .map(existingEntry -> {
                     UserGame updated = new UserGame(userIdString, gameId, existingEntry.status(), existingEntry.addedAt(), true);
                     return libraryRepositoryInterface.update(updated);
@@ -100,12 +96,6 @@ public class LibraryService implements LibraryServiceInterface {
                     UserGame newFavorite = new UserGame(userIdString, gameId, GameStatus.NONE, LocalDateTime.now(), true);
                     return libraryRepositoryInterface.save(newFavorite);
                 });
-
-        // Publicar el evento
-        FavoriteGameEvent event = new FavoriteGameEvent(userId, gameId, true, LocalDateTime.now());
-        favoriteGameEventInterface.publishFavoriteGameEvent(event);
-
-        return updatedUserGame;
     }
 
     @Override
@@ -114,12 +104,6 @@ public class LibraryService implements LibraryServiceInterface {
         String userIdString = userId.toString();
         UserGame userGame = libraryRepositoryInterface.findByUserIdAndGameId(userIdString, gameId)
                 .orElseThrow(() -> new UserGameNotFoundException("Game not found in library"));
-
-        // Solo publicar el evento si el juego era realmente un favorito
-        if (Boolean.TRUE.equals(userGame.isFavorite())) {
-            FavoriteGameEvent event = new FavoriteGameEvent(userId, gameId, false, LocalDateTime.now());
-            favoriteGameEventInterface.publishFavoriteGameEvent(event);
-        }
 
         if (userGame.status() == GameStatus.NONE) {
             libraryRepositoryInterface.deleteByUserIdAndGameId(userIdString, gameId);

@@ -32,7 +32,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import com.proyecto.application.port.out.event.FavoriteGameEventInterface;
 import com.proyecto.infrastructure.provider.IgdbApiAdapter;
 
 @SpringBootTest
@@ -49,9 +48,6 @@ class LibraryControllerIntegrationTest {
     // dentro de la clase
     @MockitoBean
     private IgdbApiAdapter igdbApiAdapter;
-
-    @MockitoBean
-    private FavoriteGameEventInterface favoriteGameEventInterface;
 
     @Autowired
     private WebApplicationContext webApplicationContext;

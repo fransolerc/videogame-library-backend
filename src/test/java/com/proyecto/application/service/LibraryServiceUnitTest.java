@@ -1,6 +1,5 @@
 package com.proyecto.application.service;
 
-import com.proyecto.application.port.out.event.FavoriteGameEventInterface;
 import com.proyecto.application.port.out.provider.GameProviderInterface;
 import com.proyecto.application.port.out.persistence.LibraryRepositoryInterface;
 import com.proyecto.application.port.out.persistence.UserRepositoryInterface;
@@ -46,8 +45,6 @@ class LibraryServiceUnitTest {
     private GameProviderInterface gameProviderInterface;
     @Mock
     private UserRepositoryInterface userRepositoryInterface;
-    @Mock
-    private FavoriteGameEventInterface favoriteGameEventInterface;
     @Mock
     private SecurityContext securityContext;
     @Mock
@@ -191,7 +188,6 @@ class LibraryServiceUnitTest {
         assertEquals(expectedFavorite, result.isFavorite());
         verify(libraryRepositoryInterface, times(shouldSave ? 1 : 0)).save(any(UserGame.class));
         verify(libraryRepositoryInterface, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
-        verify(favoriteGameEventInterface).publishFavoriteGameEvent(any());
     }
 
     private static Stream<Arguments> provideAddGameToFavoritesArguments() {
@@ -220,7 +216,6 @@ class LibraryServiceUnitTest {
         // Assert
         verify(libraryRepositoryInterface, times(shouldDelete ? 1 : 0)).deleteByUserIdAndGameId(userId.toString(), gameId);
         verify(libraryRepositoryInterface, times(shouldUpdate ? 1 : 0)).update(any(UserGame.class));
-        verify(favoriteGameEventInterface, times(shouldPublishEvent ? 1 : 0)).publishFavoriteGameEvent(any());
     }
 
     private static Stream<Arguments> provideRemoveGameFromFavoritesArguments() {
@@ -310,7 +305,6 @@ class LibraryServiceUnitTest {
             assertThrows(GameNotFoundException.class, () -> libraryService.addGameToFavorites(userId, gameId));
 
             verify(libraryRepositoryInterface, never()).save(any());
-            verify(favoriteGameEventInterface, never()).publishFavoriteGameEvent(any());
         }
 
         @Test
