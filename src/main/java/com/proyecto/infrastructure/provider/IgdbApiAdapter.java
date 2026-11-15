@@ -164,7 +164,7 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
         if (rateLimiterInterrupted() || !ensureAuthentication()) return Collections.emptyList();
 
         HttpHeaders headers = createHeaders();
-        String requestBody = String.format("search \"%s\"; %s limit 50;", name, FIELDS_GAME_BASE);
+        String requestBody = String.format("search \"%s\"; %s limit 50;", sanitizeSearchTerm(name), FIELDS_GAME_BASE);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         try {
@@ -409,5 +409,9 @@ public class IgdbApiAdapter implements GameProviderInterface, PlatformProviderIn
                 igdbPlatform.generation(),
                 PlatformType.fromValue(igdbPlatform.platformType())
         );
+    }
+
+    private static String sanitizeSearchTerm(String value) {
+        return value.replace("\"", "").replace("\\", "").trim();
     }
 }

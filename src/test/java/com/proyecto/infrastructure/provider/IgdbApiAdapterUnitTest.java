@@ -379,6 +379,18 @@ class IgdbApiAdapterUnitTest {
 
             assertTrue(adapter.searchByName("anything").isEmpty());
         }
+
+        @Test
+        void shouldStripQuotesAndBackslashesFromSearchTerm() {
+            expectSuccessfulAuth("tok");
+            mockServer.expect(requestTo(BASE_URL + "/games"))
+                    .andExpect(content().string(containsString("search \"a ; fields *;\";")))
+                    .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+
+            adapter.searchByName("a\" ; fields *; \"");
+
+            mockServer.verify();
+        }
     }
 
     @Nested
