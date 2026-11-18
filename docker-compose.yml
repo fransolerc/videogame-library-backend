@@ -2,9 +2,6 @@ services:
   videogame-library-backend:
     build: .
     container_name: videogame-library-backend
-    depends_on:
-      kafka:
-        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -14,4 +11,3 @@ services:
       IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:3000,http://localhost:5173}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
