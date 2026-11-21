@@ -1,24 +1,22 @@
 # Video Game Library Backend
 
-This project is a backend for a video game library application, built with a **Hexagonal Architecture**. It integrates with the [IGDB API](https://api-docs.igdb.com/) to fetch real-time game data.
+REST API for a video game library application, built with **Hexagonal Architecture**. It fetches game data in real time from the [IGDB API](https://api-docs.igdb.com/) and stores users and their libraries in a local database.
 
-The goal is to serve as a practical example of a modern, clean, and scalable software architecture, including a robust authentication system.
+The frontend lives in a separate repository (Angular).
 
 ---
 
 ## Core Technologies
 
-- **Java 25**
-- **Spring Boot 4**
-- **Maven**
-- **Spring Data JPA / Hibernate**: For data persistence.
-- **H2 Database**: In-memory database for development and testing.
-- **OpenAPI 3 / Swagger UI**: For API documentation and generation.
-- **Hexagonal Architecture (Ports and Adapters)**
-- **Spring Security**: Authentication and authorization (JWT).
-- **JSON Web Tokens (JWT)**: For stateless authentication.
-- **JJWT**: Library for JWT implementation.
-- **JUnit 5 / Mockito**: For unit and integration testing.
+- **Java 25** and **Maven**
+- **Spring Boot 4** (Web, Data JPA, Security, Validation); exact versions are in `pom.xml`
+- **H2**, file-based by default (`./data/videogamedb`), in-memory for tests
+- **Spring Security + JWT (JJWT)**: stateless authentication
+- **OpenAPI 3 + openapi-generator**: the API interfaces and DTOs are generated from `src/main/resources/api/openapi.yaml` at build time
+- **springdoc / Swagger UI**: interactive documentation
+- **MapStruct** and **Lombok**
+- **Bucket4j**: rate limiting for outgoing IGDB calls
+- **JUnit 5, Mockito, MockRestServiceServer, JaCoCo**
 
 ---
 
@@ -26,111 +24,132 @@ The goal is to serve as a practical example of a modern, clean, and scalable sof
 
 ### Prerequisites
 
-- **Docker Desktop** (or Docker Engine) installed and running.
-- An API client like Postman, Insomnia, or just your browser.
-- **JDK 25** or higher.
-- **Maven 3.8** or higher.
+- **JDK 25**
+- **Maven 3.9+**
+- **Docker** (optional, for running in a container)
+- IGDB credentials from <https://dev.twitch.tv/console/apps>
 
-### Mandatory Configuration
+### Configuration
 
-Credentials are read from environment variables. Copy the example file and fill in your values:
+All secrets are read from environment variables. `application.yml` defines **no defaults** for the first three, so the application (and the tests) will not start without them.
+
+| Variable | Required | Description |
+|:--|:--|:--|
+| `IGDB_CLIENT_ID` | yes | Twitch application client ID |
+| `IGDB_CLIENT_SECRET` | yes | Twitch application client secret |
+| `JWT_SECRET` | yes | Base64 string that decodes to at least 32 bytes |
+| `CORS_ALLOWED_ORIGINS` | no | Comma-separated origins. Default: `http://localhost:4200` |
+
+Copy the example file and fill in your values:
 
 ```sh
 cp .env.example .env
 ```
 
-- `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`: from https://dev.twitch.tv/console/apps
-- `JWT_SECRET`: a Base64 string, generate one with `openssl rand -base64 64`
+Generate a valid `JWT_SECRET` as **a single line, without quotes**:
 
-### Running with Docker
+```sh
+openssl rand -base64 64 | tr -d '\n'
+```
 
-1.  **Build the Docker image**:
-    -   Open a terminal in the project root and run:
-        ```sh
-        docker build -t videogame-library-backend .
-        ```
+> `openssl rand -base64 64` wraps its output across two lines. If you paste both lines, the secret is truncated. An invalid secret makes the login fail after the credentials are checked.
 
-### Running the Application (Traditional Method)
+### Running with Docker Compose
 
-1.  **Generate code and compile**:
-    ```sh
-    mvn clean install
-    ```
+```sh
+docker compose up --build
+```
 
-2.  **Run the application**:
-    ```sh
-    mvn spring-boot:run
-    ```
+Compose reads `.env` from the project root. The H2 database is stored in the named volume `videogame-data` (mounted at `/app/data`), so users survive rebuilds. `docker compose down -v` deletes it.
 
-The application will start at `http://localhost:8080`.
+### Running with Maven
+
+Maven does not read `.env`. Export the variables first (or define them in your IDE run configuration):
+
+```sh
+set -a && source .env && set +a
+mvn spring-boot:run
+```
+
+The application starts at `http://localhost:8080`.
 
 ---
 
-## API Endpoints
+## API
 
-Full API documentation is available at **[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)** once the application is running.
+Interactive documentation: **<http://localhost:8080/swagger-ui.html>**. The contract is `src/main/resources/api/openapi.yaml`.
 
-### Authentication & Status
+### Public endpoints
 
-| Method | Endpoint          | Description                                                                                                       |
-|:-------|:------------------|:------------------------------------------------------------------------------------------------------------------|
-| `POST` | `/users/register` | Registers a new user. The password must have at least 8 characters, one uppercase, one lowercase, and one number. |
-| `POST` | `/users/login`    | Logs in and returns a JWT, `userId`, and `username`.                                                              |
-| `GET`  | `/health`         | Checks the application's health status. Returns `{"status": "UP"}` if everything is correct.                      |
+| Method | Endpoint | Description |
+|:--|:--|:--|
+| `GET` | `/health` | Returns `{"status": "UP"}` |
+| `POST` | `/users/register` | Registers a user. Password: at least 8 characters, one uppercase, one lowercase and one digit |
+| `POST` | `/users/login` | Returns a JWT, `userId` and `username` (login is by **email**) |
+| `GET` | `/games/search?name=` | Searches games by name |
+| `GET` | `/games/{id}` | Full details of a game (IGDB ID) |
+| `POST` | `/games/filter` | Advanced search with IGDB filters, sorting and pagination |
+| `POST` | `/games/batch` | Details of several games from a list of IDs |
+| `GET` | `/platforms` | Lists all platforms |
 
-### Game Discovery
+### Authenticated endpoints (`Authorization: Bearer <token>`)
 
-| Method | Endpoint        | Description                                                                    |
-|:-------|:----------------|:-------------------------------------------------------------------------------|
-| `GET`  | `/games/search` | Searches for video games by name. (e.g., `?name=Zelda`)                        |
-| `GET`  | `/games/{id}`   | Gets the full details of a video game by its IGDB ID.                          |
-| `POST` | `/games/filter` | Performs an advanced search with filters, sorting, and pagination.             |
-| `POST` | `/games/batch`  | Gets the full details of multiple video games from a list of IDs.              |
+A user can only access **their own** library. Requesting another user's `userId` returns `403`.
 
-### Platforms
+| Method | Endpoint | Description |
+|:--|:--|:--|
+| `GET` | `/users/{userId}/games` | Lists the user's library |
+| `GET` | `/users/{userId}/games/{gameId}` | Status of one game (`404` if not in the library) |
+| `PUT` | `/users/{userId}/games/{gameId}` | Adds a game or updates its status. With status `NONE` and not a favorite, the entry is removed (`204`) |
+| `DELETE` | `/users/{userId}/games/{gameId}` | Removes a game from the library |
+| `POST` | `/users/{userId}/games/{gameId}/favorite` | Marks as favorite. If not in the library, it is added with status `NONE` |
+| `DELETE` | `/users/{userId}/games/{gameId}/favorite` | Removes from favorites. If the status is `NONE`, the entry is removed |
+| `GET` | `/users/{userId}/favorites` | Paginated list of favorites (`page`, `size`) |
 
-| Method | Endpoint     | Description                                      |
-|:-------|:-------------|:-------------------------------------------------|
-| `GET`  | `/platforms` | Lists all available video game platforms.        |
+Game statuses: `NONE`, `WANT_TO_PLAY`, `PLAYING`, `COMPLETED`.
 
-### User Library
+---
 
-| Method   | Endpoint                                  | Description                                                                                                              |
-|:---------|:------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------|
-| `GET`    | `/users/{userId}/games`                   | Lists all games in a user's library.                                                                                     |
-| `GET`    | `/users/{userId}/games/{gameId}`          | Gets the status of a specific game in the user's library.                                                                |
-| `PUT`    | `/users/{userId}/games/{gameId}`          | Adds a game to the library or updates its status. If the status is `NONE` and it's not a favorite, the entry is removed. |
-| `DELETE` | `/users/{userId}/games/{gameId}`          | Removes a game from a user's library (complete deletion).                                                                |
-| `POST`   | `/users/{userId}/games/{gameId}/favorite` | Marks a game as a favorite. If not in the library, it's added with `NONE` status. Returns the updated resource.          |
-| `DELETE` | `/users/{userId}/games/{gameId}/favorite` | Removes a game from favorites. If the game's status is `NONE`, it's completely removed from the library.                 |
-| `GET`    | `/users/{userId}/favorites`               | Lists all of a user's favorite games (paginated).                                                                        |
+## Runtime notes
+
+- **Cache:** IGDB responses are cached in memory (`ConcurrentMapCacheManager`). Entries **never expire** until the application restarts.
+- **Rate limit:** outgoing IGDB calls go through a token bucket of 10 requests per second.
+- **H2 console:** enabled at `/h2-console` and publicly accessible. It is intended for **development only**; disable it before exposing the service.
+- **IGDB errors:** failures are logged and surface as empty results, not as errors.
 
 ---
 
 ## Testing
 
-The project has high test coverage, including:
-
--   **Unit Tests**: For application services and domain logic.
--   **Integration Tests**: For REST controllers and database interaction.
-
-To run all tests, use the following Maven command:
-
 ```sh
 mvn clean verify
 ```
+
+- **Unit tests:** services and the IGDB adapter (HTTP contract checked with `MockRestServiceServer`).
+- **Integration tests:** controllers with `MockMvc` and an in-memory H2 database.
+
+The environment variables listed above must be defined, otherwise the Spring context fails to start. A JaCoCo report is generated in `target/site/jacoco`.
 
 ---
 
 ## Architecture
 
-The project follows the principles of **Hexagonal Architecture** to separate the business domain from infrastructure details.
+```
+com.proyecto
+├── domain                  Models and domain exceptions
+├── application
+│   ├── port.in             Use-case interfaces (*ServiceInterface)
+│   ├── port.out            Output ports (persistence, provider)
+│   └── service             Use-case implementations
+└── infrastructure
+    ├── adapter.in.web      REST controllers, mappers, error handling
+    ├── adapter.out.persistence   JPA entities, repositories, adapters
+    ├── provider            IGDB adapter
+    ├── security            JWT filter and token provider
+    └── config              Security, CORS, cache, rate limiter, IGDB client
+```
 
--   **`domain`**: Contains the business logic and entities (the "core" of the application). It has no dependencies on other layers.
--   **`application`**: Orchestrates workflows. It contains the *ports* (`UseCase` interfaces) and the *use cases* (services that implement those `UseCase` interfaces).
--   **`infrastructure`**: Contains the concrete implementations of the ports (the "adapters").
-    -   **`adapter.in.web`**: Input adapters (Driving Adapters), such as REST controllers.
-    -   **`adapter.out.persistence`**: Output adapters (Driven Adapters) for databases (JPA).
-    -   **`adapter.out.provider`**: Output adapters for external providers (IGDB API).
-    -   **`security`**: Security configuration (JWT).
-    -   **`config`**: General application configurations.
+The dependency direction is `infrastructure → application → domain`. There are pragmatic deviations:
+
+- Some domain records carry Jackson annotations (`Game`, `Artwork`, `PlatformType`).
+- `UserService` depends directly on `JwtTokenProvider` and Spring Security's `AuthenticationManager`.
