@@ -61,3 +61,6 @@ application.properties
 
 # Local H2 database
 /data/
+
+# Enviroment Files
+/.env
