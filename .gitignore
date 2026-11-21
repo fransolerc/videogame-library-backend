@@ -58,3 +58,6 @@ help.md
 
 # Application Secrets
 application.properties
+
+# Local H2 database
+/data/
